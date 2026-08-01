@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#050d0a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#eef5f0" media="(prefers-color-scheme: light)" />
+    <title>Poupaê Aurora — sua rota até a meta</title>
+    <meta name="description" content="Transforme um valor distante numa rota de pequenos depósitos: plano calculado, marcos visuais e conquistas." />
+
+    <!-- instalável (PWA) -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Poupaê" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-palette="#0f9d6e,#6d4aff" data-mode="dark">
+    <!-- ── camadas de fundo ───────────────────────────────── -->
+    <div class="bg-aurora" aria-hidden="true">
+      <span class="blob b1"></span>
+      <span class="blob b2"></span>
+      <span class="blob b3"></span>
+      <span class="blob b4"></span>
+    </div>
+    <canvas id="fieldCanvas" class="bg-field" aria-hidden="true"></canvas>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-grain" aria-hidden="true"></div>
+    <div id="spotlight" class="bg-spot" aria-hidden="true"></div>
+
+    <!-- ══ AUTENTICAÇÃO ═══════════════════════════════════ -->
+    <main id="authView" class="auth">
+      <section class="auth-hero reveal">
+        <div class="brand brand-lg">
+          <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <circle class="mark-ring" cx="20" cy="20" r="16.5" stroke-width="2.4" />
+              <path class="mark-route" d="M8 27c4.6 0 6.4-6 11-8.6S27.8 13 32 11.4" stroke-width="2.6" stroke-linecap="round" />
+              <circle class="mark-dot" cx="14.5" cy="24.2" r="2.6" />
+              <path class="mark-flag" d="M31 12.6V5m0 0 6 2.4L31 10" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="brand-text">
+            <b>Poupaê</b>
+            <i>Aurora</i>
+          </span>
+        </div>
+
+        <h1 class="display">
+          Seu dinheiro<br />
+          com <em>destino</em>.
+        </h1>
+        <p class="lede">
+          Transforme um valor distante numa rota de pequenos passos.
+          O Poupaê calcula, acompanha e comemora cada depósito com você.
+        </p>
+
+        <ul class="auth-points">
+          <li><span>01</span> Plano de depósitos calculado sob medida</li>
+          <li><span>02</span> Rota visual com marcos e conquistas</li>
+          <li><span>03</span> Tudo salvo neste dispositivo, sem servidor</li>
+        </ul>
+
+        <div class="orbit" aria-hidden="true">
+          <span class="orbit-ring r1"></span>
+          <span class="orbit-ring r2"></span>
+          <span class="orbit-ring r3"></span>
+          <span class="orbit-core"></span>
+          <span class="orbit-sat s1"></span>
+          <span class="orbit-sat s2"></span>
+          <span class="orbit-sat s3"></span>
+        </div>
+      </section>
+
+      <section class="auth-card glass reveal" style="--d: 120ms">
+        <div class="tabs" role="tablist" aria-label="Acesso">
+          <button id="tabLogin" class="tab is-active" type="button" role="tab">Entrar</button>
+          <button id="tabRegister" class="tab" type="button" role="tab">Criar conta</button>
+          <span class="tab-glider" aria-hidden="true"></span>
+        </div>
+
+        <form id="authForm" class="form" novalidate>
+          <label id="fieldName" class="field is-hidden">
+            <input id="authName" type="text" placeholder=" " autocomplete="name" />
+            <span>Nome</span>
+          </label>
+          <label class="field">
+            <input id="authEmail" type="email" placeholder=" " autocomplete="email" required />
+            <span>E-mail</span>
+          </label>
+          <label class="field">
+            <input id="authPassword" type="password" placeholder=" " autocomplete="current-password" required />
+            <span>Senha</span>
+            <button id="togglePass" class="field-btn" type="button" aria-label="Mostrar senha">Mostrar</button>
+          </label>
+
+          <div class="form-row">
+            <label class="switch">
+              <input id="remember" type="checkbox" checked />
+              <i aria-hidden="true"></i>
+              Manter conectado
+            </label>
+            <button id="helpBtn" class="link" type="button">Ajuda</button>
+          </div>
+
+          <button id="authSubmit" class="btn btn-primary btn-block" type="submit">
+            <span>Entrar</span>
+          </button>
+
+          <p class="form-note">Conta local e criptografada no seu navegador.</p>
+        </form>
+      </section>
+    </main>
+
+    <!-- ══ APLICATIVO ═════════════════════════════════════ -->
+    <div id="appShell" class="shell is-hidden">
+      <!-- barra lateral -->
+      <aside class="rail">
+        <div class="brand">
+          <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <circle class="mark-ring" cx="20" cy="20" r="16.5" stroke-width="2.4" />
+              <path class="mark-route" d="M8 27c4.6 0 6.4-6 11-8.6S27.8 13 32 11.4" stroke-width="2.6" stroke-linecap="round" />
+              <circle class="mark-dot" cx="14.5" cy="24.2" r="2.6" />
+              <path class="mark-flag" d="M31 12.6V5m0 0 6 2.4L31 10" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="brand-text"><b>Poupaê</b><i>Aurora</i></span>
+        </div>
+
+        <nav class="rail-nav" aria-label="Navegação principal">
+          <span class="rail-glider" aria-hidden="true"></span>
+          <button class="rail-item is-active" data-screen="dashboard" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.4 12 4l9 7.4" /><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-5.4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20h3.5a1 1 0 0 0 1-1v-9" /></svg>
+            <b>Início</b>
+          </button>
+          <button class="rail-item" data-screen="goals" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4.2" /><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" /></svg>
+            <b>Metas</b>
+          </button>
+          <button class="rail-item" data-screen="plan" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9.5 10.5 13.5 14.5 21 6" /><polyline points="14.5 6 21 6 21 12.5" /></svg>
+            <b>Plano</b>
+          </button>
+          <button class="rail-item" data-screen="deposits" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3" /><path d="M3.5 9.5h17M8 3v3M16 3v3M8 14h3" /></svg>
+            <b>Depósitos</b>
+          </button>
+          <button class="rail-item" data-screen="awards" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4l2.6 5.4 5.9.8-4.2 4.2 1 5.9L12 17l-5.3 2.7 1-5.9-4.2-4.2 5.9-.8z" /></svg>
+            <b>Conquistas</b>
+          </button>
+          <button class="rail-item" data-screen="account" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="10" r="3" /><path d="M5.7 18.5a6.8 6.8 0 0 1 12.6 0" stroke-linecap="round" /></svg>
+            <b>Conta</b>
+          </button>
+        </nav>
+
+        <div class="rail-progress glass-soft">
+          <span>Progresso</span>
+          <strong id="railPercent">0%</strong>
+          <div class="meter"><i id="railBar"></i></div>
+          <small id="railHint">Crie sua primeira meta</small>
+        </div>
+      </aside>
+
+      <!-- conteúdo -->
+      <div class="main">
+        <header id="topbar" class="topbar glass">
+          <div class="brand brand-sm">
+            <span class="mark" aria-hidden="true">
+              <svg viewBox="0 0 40 40" fill="none">
+                <circle class="mark-ring" cx="20" cy="20" r="16.5" stroke-width="2.4" />
+                <path class="mark-route" d="M8 27c4.6 0 6.4-6 11-8.6S27.8 13 32 11.4" stroke-width="2.6" stroke-linecap="round" />
+                <circle class="mark-dot" cx="14.5" cy="24.2" r="2.6" />
+              </svg>
+            </span>
+            <span class="brand-text"><b>Poupaê</b><i>Aurora</i></span>
+          </div>
+
+          <button id="cmdOpen" class="cmd-hint" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+            <span>Buscar ou executar…</span>
+            <kbd>Ctrl</kbd><kbd>K</kbd>
+          </button>
+
+          <div class="top-actions">
+            <button id="installBtn" class="btn btn-ghost is-hidden" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 3.5v11m0 0 4-4m-4 4-4-4" /><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" /></svg>
+              Instalar
+            </button>
+            <button id="themeBtn" class="icon-btn" type="button" aria-label="Alternar tema">
+              <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2m20 0h-2.2M5.9 5.9 4.4 4.4m15.2 15.2-1.5-1.5M18.1 5.9l1.5-1.5M4.4 19.6l1.5-1.5" /></svg>
+              <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.2A8.4 8.4 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2Z" /></svg>
+            </button>
+            <button id="newGoalBtn" class="btn btn-ghost is-hidden" type="button">Nova meta</button>
+            <button id="editGoalBtn" class="btn btn-ghost is-hidden" type="button">Editar</button>
+            <div class="avatar-wrap">
+              <button id="avatarBtn" class="avatar" type="button" aria-label="Conta"><span id="avatarInitials">P</span></button>
+              <div id="avatarMenu" class="menu glass">
+                <p id="menuName">—</p>
+                <small id="menuEmail">—</small>
+                <button data-screen="account" type="button">Minha conta</button>
+                <button id="logoutBtn" class="danger" type="button">Sair</button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- ── assistente de criação de meta ── -->
+        <section id="setupView" class="setup is-hidden">
+          <div class="setup-card glass">
+            <div class="setup-head">
+              <div>
+                <p class="eyebrow" id="setupEyebrow">Nova meta</p>
+                <h2 class="display-sm" id="setupTitle">Vamos desenhar sua rota</h2>
+              </div>
+              <button id="exampleBtn" class="link" type="button">Usar exemplo</button>
+              <button id="cancelEditBtn" class="link is-hidden" type="button">Cancelar</button>
+            </div>
+
+            <div class="steps" aria-hidden="true">
+              <span class="step is-active" data-step="1"><i>1</i> Destino</span>
+              <span class="step" data-step="2"><i>2</i> Prazo</span>
+              <span class="step" data-step="3"><i>3</i> Ritmo</span>
+              <span class="steps-bar"><i id="stepsBar"></i></span>
+            </div>
+
+            <form id="goalForm" class="form" novalidate>
+              <div class="panel is-active" data-panel="1">
+                <label class="field">
+                  <input id="goalName" type="text" placeholder=" " required />
+                  <span>Nome da meta</span>
+                </label>
+                <div class="grid-2">
+                  <label class="field">
+                    <input id="goalAmount" type="number" min="1" step="0.01" placeholder=" " required />
+                    <span>Quanto quer juntar? (R$)</span>
+                  </label>
+                  <label class="field">
+                    <input id="currentAmount" type="number" min="0" step="0.01" placeholder=" " />
+                    <span>Já tem guardado? (R$)</span>
+                  </label>
+                </div>
+                <label class="field">
+                  <select id="goalReason">
+                    <option value="reserva">Reserva de emergência</option>
+                    <option value="viagem">Viagem</option>
+                    <option value="compra">Compra importante</option>
+                    <option value="divida">Quitar dívida</option>
+                    <option value="investimento">Investimento</option>
+                    <option value="sonho">Sonho pessoal</option>
+                  </select>
+                  <span>Motivo</span>
+                </label>
+              </div>
+
+              <div class="panel" data-panel="2">
+                <label class="field">
+                  <input id="deadline" type="date" required />
+                  <span>Data limite</span>
+                </label>
+                <label class="field">
+                  <select id="frequency">
+                    <option value="weekly">Semanal</option>
+                    <option value="daily">Diária</option>
+                    <option value="monthly">Mensal</option>
+                  </select>
+                  <span>Frequência dos depósitos</span>
+                </label>
+                <div class="hintbox" id="freqHint">Escolha a data e veja quantos depósitos o plano terá.</div>
+              </div>
+
+              <div class="panel" data-panel="3">
+                <fieldset class="choices">
+                  <legend>Estratégia</legend>
+                  <label class="choice">
+                    <input type="radio" name="strategy" value="fixed" checked />
+                    <b>Valor fixo</b><small>Mesmo valor do começo ao fim.</small>
+                  </label>
+                  <label class="choice">
+                    <input type="radio" name="strategy" value="progressive" />
+                    <b>Progressiva</b><small>Começa leve e cresce aos poucos.</small>
+                  </label>
+                  <label class="choice">
+                    <input type="radio" name="strategy" value="flexible" />
+                    <b>Flexível</b><small>Variação suave para dar respiro.</small>
+                  </label>
+                </fieldset>
+                <label class="field">
+                  <input id="monthlyCapacity" type="number" min="0" step="0.01" placeholder=" " />
+                  <span>Confortável por mês (R$)</span>
+                </label>
+              </div>
+
+              <div class="setup-actions">
+                <button id="stepBack" class="btn btn-ghost" type="button">Voltar</button>
+                <button id="stepNext" class="btn btn-primary" type="button"><span>Continuar</span></button>
+                <button id="submitGoal" class="btn btn-primary is-hidden" type="submit"><span>Criar meu plano</span></button>
+              </div>
+            </form>
+          </div>
+
+          <aside class="setup-preview glass-soft">
+            <p class="eyebrow">Prévia do plano</p>
+            <strong id="previewAmount">R$ 0,00</strong>
+            <small id="previewCaption">por depósito</small>
+            <div class="preview-bars" id="previewBars"></div>
+            <p id="previewText" class="muted">Preencha os campos para ver a simulação em tempo real.</p>
+          </aside>
+        </section>
+
+        <!-- ── telas do app ── -->
+        <div id="screens" class="screens is-hidden">
+          <!-- INÍCIO -->
+          <section id="screen-dashboard" class="screen is-active">
+            <article class="hero glass reveal">
+              <div class="hero-copy">
+                <p class="eyebrow" id="greeting">Plano ativo</p>
+                <h1 class="display-sm" id="goalTitle">Minha meta</h1>
+                <p class="muted" id="goalSubtitle">Sua rota financeira está pronta.</p>
+                <div class="hero-chips" id="heroChips"></div>
+              </div>
+
+              <div class="ring-wrap">
+                <div class="ring-halo" aria-hidden="true"></div>
+                <svg class="ring" viewBox="0 0 200 200" role="img" aria-labelledby="ringLabel">
+                  <title id="ringLabel">Progresso da meta</title>
+                  <defs>
+                    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="var(--series-1)" />
+                      <stop offset="55%" stop-color="var(--series-1-soft)" />
+                      <stop offset="100%" stop-color="var(--series-2)" />
+                    </linearGradient>
+                  </defs>
+                  <circle class="ring-track" cx="100" cy="100" r="84" />
+                  <circle id="ringValue" class="ring-value" cx="100" cy="100" r="84" />
+                </svg>
+                <div class="ring-center">
+                  <strong id="ringPercent">0%</strong>
+                  <small>concluído</small>
+                </div>
+              </div>
+            </article>
+
+            <section class="kpis" id="kpis">
+              <article class="kpi glass-soft reveal" style="--d: 40ms">
+                <span>Guardado</span>
+                <strong data-count id="kpiSaved">R$ 0,00</strong>
+                <div class="meter"><i id="kpiSavedBar"></i></div>
+              </article>
+              <article class="kpi glass-soft reveal" style="--d: 90ms">
+                <span>Falta</span>
+                <strong data-count id="kpiRemaining">R$ 0,00</strong>
+                <small id="kpiRemainingHint">—</small>
+              </article>
+              <article class="kpi glass-soft reveal" style="--d: 140ms">
+                <span>Próximo depósito</span>
+                <strong data-count id="kpiNext">R$ 0,00</strong>
+                <small id="kpiNextHint">—</small>
+              </article>
+              <article class="kpi glass-soft reveal" style="--d: 190ms">
+                <span>Prazo</span>
+                <strong id="kpiDays">0 dias</strong>
+                <small id="kpiDaysHint">—</small>
+              </article>
+            </section>
+
+            <article class="route-card glass reveal" style="--d: 120ms">
+              <div class="card-head">
+                <div>
+                  <p class="eyebrow">Sua rota</p>
+                  <h2>Marcos até a meta</h2>
+                </div>
+                <span class="pill" id="routePill">0 de 0</span>
+              </div>
+              <div class="route-scroll">
+                <svg id="routeSvg" class="route" viewBox="0 0 900 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Linha do tempo dos depósitos"></svg>
+              </div>
+            </article>
+
+            <div class="dash-split">
+              <article class="action glass reveal" style="--d: 60ms">
+                <p class="eyebrow">Ação recomendada</p>
+                <h2 id="actionTitle">Concluir próximo depósito</h2>
+                <p class="muted" id="actionText">Crie uma meta para ver o próximo passo aqui.</p>
+                <div class="action-row">
+                  <label class="field field-inline">
+                    <input id="customAmount" type="number" min="0" step="0.01" placeholder=" " />
+                    <span>Outro valor</span>
+                  </label>
+                  <button id="payBtn" class="btn btn-primary" type="button"><span>Concluir</span></button>
+                </div>
+              </article>
+
+              <article class="insight glass reveal" style="--d: 110ms">
+                <span class="insight-badge" id="insightBadge">Equilibrado</span>
+                <p class="eyebrow">Leitura do Poupaê</p>
+                <h2 id="insightTitle">Seu plano está pronto</h2>
+                <p class="muted" id="insightText">Acompanhe a consistência e ajuste a rota quando precisar.</p>
+              </article>
+            </div>
+          </section>
+
+          <!-- METAS -->
+          <section id="screen-goals" class="screen">
+            <div class="head">
+              <div>
+                <p class="eyebrow">Minhas metas</p>
+                <h2 class="display-sm">Todas as suas rotas</h2>
+              </div>
+              <button id="newGoalBtn2" class="btn btn-primary" type="button"><span>Nova meta</span></button>
+            </div>
+            <div id="goalsList" class="goals"></div>
+          </section>
+
+          <!-- PLANO -->
+          <section id="screen-plan" class="screen">
+            <div class="head">
+              <div>
+                <p class="eyebrow">Plano personalizado</p>
+                <h2 class="display-sm">Evolução prevista</h2>
+              </div>
+              <button id="recalcBtn" class="btn btn-ghost" type="button">Recalcular</button>
+            </div>
+
+            <article class="chart-card glass">
+              <div class="card-head">
+                <div>
+                  <h3>Acúmulo ao longo do plano</h3>
+                  <p class="muted" id="chartCaption">Comparação entre o planejado e o realizado.</p>
+                </div>
+                <span class="pill" id="planHealth">—</span>
+              </div>
+
+              <div class="legend" role="list">
+                <span role="listitem"><i class="swatch s1"></i> Realizado</span>
+                <span role="listitem"><i class="swatch s2"></i> Planejado</span>
+              </div>
+
+              <div class="chart-frame">
+                <svg id="planChart" viewBox="0 0 760 280" preserveAspectRatio="none" role="img" aria-label="Gráfico de evolução da meta"></svg>
+                <div id="chartTip" class="chart-tip" hidden></div>
+              </div>
+
+              <details class="table-toggle">
+                <summary>Ver dados em tabela</summary>
+                <div class="table-scroll"><table id="planTable"></table></div>
+              </details>
+            </article>
+
+            <section class="plan-grid" id="planDetails"></section>
+          </section>
+
+          <!-- DEPÓSITOS -->
+          <section id="screen-deposits" class="screen">
+            <div class="head">
+              <div>
+                <p class="eyebrow">Depósitos</p>
+                <h2 class="display-sm">Agenda da meta</h2>
+              </div>
+              <div class="filters">
+                <label class="field field-inline">
+                  <input id="depositSearch" type="search" placeholder=" " />
+                  <span>Buscar</span>
+                </label>
+                <div class="segmented" id="depositFilter">
+                  <button class="is-active" data-filter="all" type="button">Todos</button>
+                  <button data-filter="pending" type="button">Pendentes</button>
+                  <button data-filter="paid" type="button">Concluídos</button>
+                  <span class="seg-glider" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+            <div id="depositList" class="deposits"></div>
+          </section>
+
+          <!-- CONQUISTAS -->
+          <section id="screen-awards" class="screen">
+            <div class="head">
+              <div>
+                <p class="eyebrow">Conquistas</p>
+                <h2 class="display-sm">Marcos da jornada</h2>
+              </div>
+              <span class="pill" id="awardsPill">0 / 6</span>
+            </div>
+            <div id="awardsList" class="awards"></div>
+          </section>
+
+          <!-- CONTA -->
+          <section id="screen-account" class="screen">
+            <div class="head">
+              <div>
+                <p class="eyebrow">Conta</p>
+                <h2 class="display-sm">Dados de acesso</h2>
+              </div>
+            </div>
+            <form id="accountForm" class="account glass">
+              <label class="field">
+                <input id="accountName" type="text" placeholder=" " required />
+                <span>Nome</span>
+              </label>
+              <label class="field">
+                <input id="accountEmail" type="email" placeholder=" " readonly />
+                <span>E-mail</span>
+              </label>
+              <div class="grid-2">
+                <label class="field">
+                  <input id="accountCurrentPassword" type="password" placeholder=" " />
+                  <span>Senha atual</span>
+                </label>
+                <label class="field">
+                  <input id="accountNewPassword" type="password" placeholder=" " />
+                  <span>Nova senha</span>
+                </label>
+              </div>
+              <div class="account-actions">
+                <button class="btn btn-primary" type="submit"><span>Salvar conta</span></button>
+                <button id="deleteAccountBtn" class="btn btn-danger" type="button">Excluir conta</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <nav class="dock glass" aria-label="Navegação inferior">
+          <button class="dock-item is-active" data-screen="dashboard" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.4 12 4l9 7.4" /><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-5.4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20h3.5a1 1 0 0 0 1-1v-9" /></svg><b>Início</b>
+          </button>
+          <button class="dock-item" data-screen="goals" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4.2" /></svg><b>Metas</b>
+          </button>
+          <button class="dock-item" data-screen="plan" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9.5 10.5 13.5 14.5 21 6" /><polyline points="14.5 6 21 6 21 12.5" /></svg><b>Plano</b>
+          </button>
+          <button class="dock-item" data-screen="deposits" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3" /><path d="M3.5 9.5h17M8 3v3M16 3v3" /></svg><b>Depósitos</b>
+          </button>
+          <button class="dock-item" data-screen="awards" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4l2.6 5.4 5.9.8-4.2 4.2 1 5.9L12 17l-5.3 2.7 1-5.9-4.2-4.2 5.9-.8z" /></svg><b>Prêmios</b>
+          </button>
+          <span class="dock-glider" aria-hidden="true"></span>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ══ SOBREPOSIÇÕES ══════════════════════════════════ -->
+    <div id="cmdPalette" class="cmd is-hidden" role="dialog" aria-modal="true" aria-label="Paleta de comandos">
+      <div class="cmd-box glass">
+        <input id="cmdInput" type="text" placeholder="Buscar telas, metas e ações…" autocomplete="off" />
+        <ul id="cmdList" class="cmd-list"></ul>
+        <footer><kbd>↑</kbd><kbd>↓</kbd> navegar <kbd>Enter</kbd> abrir <kbd>Esc</kbd> fechar</footer>
+      </div>
+    </div>
+
+    <div id="installHelp" class="cmd is-hidden" role="dialog" aria-modal="true" aria-labelledby="installHelpTitle">
+      <div class="cmd-box glass install-help">
+        <h2 id="installHelpTitle">Instalar o Poupaê</h2>
+        <p id="installHelpIntro" class="muted"></p>
+        <ol id="installHelpSteps"></ol>
+        <p id="installHelpNote" class="install-note"></p>
+        <button id="installHelpClose" class="btn btn-primary btn-block" type="button"><span>Entendi</span></button>
+      </div>
+    </div>
+
+    <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+    <div id="toast" class="toast" role="status" aria-live="polite"><b></b><i></i></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
