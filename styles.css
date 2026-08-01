@@ -252,16 +252,19 @@ p { margin: 0; }
   place-items: center;
   width: 42px; height: 42px;
   border-radius: 14px;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--series-1) 26%, transparent), color-mix(in srgb, var(--series-2) 20%, transparent));
-  border: 1px solid var(--glass-brd);
+  /* escuro nos dois temas: as barras da logo são claras e sumiriam no claro */
+  background: linear-gradient(150deg, #0d1c17, #060f0c);
+  border: 1px solid color-mix(in srgb, var(--series-1) 30%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   flex: none;
+  overflow: hidden;
 }
-.brand .mark svg { width: 26px; height: 26px; }
-.mark-ring { stroke: color-mix(in srgb, var(--series-1) 55%, transparent); }
-.mark-route { stroke: var(--series-1); stroke-dasharray: 46; animation: draw 2.6s var(--ease) infinite alternate; }
-.mark-dot { fill: var(--series-1); }
-.mark-flag { stroke: var(--gold); }
-@keyframes draw { from { stroke-dashoffset: 46; } to { stroke-dashoffset: 0; } }
+.brand .mark img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  display: block;
+}
 
 .brand-text { display: grid; line-height: 1.15; }
 .brand-text b { font-size: 1.02rem; font-weight: 700; }
@@ -272,11 +275,9 @@ p { margin: 0; }
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.brand-lg .mark { width: 56px; height: 56px; border-radius: 18px; }
-.brand-lg .mark svg { width: 34px; height: 34px; }
+.brand-lg .mark { width: 58px; height: 58px; border-radius: 18px; }
 .brand-lg .brand-text b { font-size: 1.3rem; }
 .brand-sm .mark { width: 36px; height: 36px; border-radius: 12px; }
-.brand-sm .mark svg { width: 22px; height: 22px; }
 
 /* ── botões ────────────────────────────────────────────── */
 .btn {
