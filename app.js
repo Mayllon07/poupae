@@ -6,7 +6,6 @@
 const ACCOUNTS_KEY = "poupae:accounts:v1";
 const USER_KEY = "poupae:user:v1";
 const SESSION_KEY = "poupae:session:v1";
-const THEME_KEY = "poupae:theme";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -54,7 +53,6 @@ const els = {
 
   shell: $("#appShell"),
   topbar: $("#topbar"),
-  themeBtn: $("#themeBtn"),
   newGoalBtn: $("#newGoalBtn"),
   newGoalBtn2: $("#newGoalBtn2"),
   editGoalBtn: $("#editGoalBtn"),
@@ -223,7 +221,6 @@ const state = {
   search: "",
   editing: false,
   step: 1,
-  theme: localStorage.getItem(THEME_KEY) || "dark",
 };
 
 /* ── utilidades de domínio ───────────────────────────────── */
@@ -371,7 +368,6 @@ const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el))
 
   const tick = () => {
     ctx.clearRect(0, 0, w, h);
-    const light = document.documentElement.dataset.theme === "light";
     for (const d of dots) {
       d.y -= d.s;
       d.a += 0.008;
@@ -379,7 +375,7 @@ const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el))
       if (d.y < -6) { d.y = h + 6; d.x = Math.random() * w; }
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = light ? `rgba(15,157,110,${d.o * 0.5})` : `rgba(150,255,214,${d.o})`;
+      ctx.fillStyle = `rgba(150,255,214,${d.o})`;
       ctx.fill();
     }
     requestAnimationFrame(tick);
@@ -474,7 +470,6 @@ function toast(message) {
 
 /* ── render ──────────────────────────────────────────────── */
 function render() {
-  applyTheme();
   renderAuth();
   if (!state.authed) return;
   renderChrome();
@@ -488,16 +483,6 @@ function render() {
   renderDeposits();
   renderAwards();
   observeReveals();
-}
-
-const THEME_BAR = { dark: "#050d0a", light: "#eef5f0" };
-
-function applyTheme() {
-  document.documentElement.dataset.theme = state.theme;
-  document.body.dataset.mode = state.theme;
-  // instalado, a barra de status do sistema usa esta cor
-  const meta = $("#themeColor");
-  if (meta) meta.setAttribute("content", THEME_BAR[state.theme] || THEME_BAR.dark);
 }
 
 function renderAuth() {
@@ -1226,7 +1211,6 @@ function cmdActions() {
     { label: "Ir para Conquistas", hint: "Tela", run: () => showScreen("awards") },
     { label: "Ir para Conta", hint: "Tela", run: () => showScreen("account") },
     { label: "Criar nova meta", hint: "Ação", run: startNewGoal },
-    { label: `Mudar para tema ${state.theme === "dark" ? "claro" : "escuro"}`, hint: "Ação", run: toggleTheme },
     { label: "Concluir próximo depósito", hint: "Ação", run: payNext },
     { label: "Recalcular plano", hint: "Ação", run: recalculate },
     { label: "Instalar aplicativo", hint: "Ação", run: promptInstall },
@@ -1260,14 +1244,6 @@ function runCmd() {
   const item = els.cmdList._items?.[cmdIndex];
   closeCmd();
   if (item) item.run();
-}
-
-/* ── tema ────────────────────────────────────────────────── */
-function toggleTheme() {
-  state.theme = state.theme === "dark" ? "light" : "dark";
-  localStorage.setItem(THEME_KEY, state.theme);
-  render();
-  if (state.goal) renderChart();
 }
 
 /* ── eventos ─────────────────────────────────────────────── */
@@ -1325,7 +1301,6 @@ els.newGoalBtn.addEventListener("click", startNewGoal);
 els.newGoalBtn2.addEventListener("click", startNewGoal);
 els.editGoalBtn.addEventListener("click", startEditGoal);
 els.logoutBtn.addEventListener("click", logout);
-els.themeBtn.addEventListener("click", toggleTheme);
 els.payBtn.addEventListener("click", payNext);
 els.recalcBtn.addEventListener("click", recalculate);
 els.accountForm.addEventListener("submit", updateAccount);

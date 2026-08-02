@@ -54,41 +54,6 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
-html[data-theme="light"] {
-  color-scheme: only light;
-
-  --page: #f4f9f6;
-  --page-2: #ffffff;
-  --surface-1: #ffffff;
-  --glass: rgba(255, 255, 255, 0.86);
-  --glass-soft: rgba(255, 255, 255, 0.7);
-  --glass-brd: rgba(9, 32, 23, 0.09);
-  --glass-hi: rgba(255, 255, 255, 0.9);
-
-  --ink: #07130e;
-  --ink-2: #4a5f56;
-  --ink-3: #6f857b;
-  --line: rgba(9, 32, 23, 0.1);
-  --grid-line: rgba(9, 32, 23, 0.04);
-
-  --series-1: #0f9d6e;
-  --series-1-soft: #14b981;
-  --series-1-deep: #076a49;
-  --series-2: #6d4aff;
-  --series-2-soft: #8b6dff;
-
-  /* validadas p/ a superfície clara #f7fbf8
-     (CVD ΔE 27.0 · normal ΔE 34.2 · contraste >= 3:1) */
-  --viz-1: #0f9d6e;
-  --viz-2: #6d4aff;
-
-  --gold: #a97c22;
-
-  --shadow: 0 30px 80px rgba(11, 46, 33, 0.14);
-  --shadow-sm: 0 12px 34px rgba(11, 46, 33, 0.1);
-  --glow: 0 0 0 1px rgba(15, 157, 110, 0.24), 0 18px 46px -14px rgba(15, 157, 110, 0.42);
-}
-
 * { box-sizing: border-box; }
 *::selection { background: color-mix(in srgb, var(--series-1) 32%, transparent); color: var(--ink); }
 
@@ -177,8 +142,6 @@ body::-webkit-scrollbar { display: none; }
   opacity: 0.5;
   will-change: transform;
 }
-/* no claro as manchas precisam ser bem discretas, senão o fundo encardece */
-html[data-theme="light"] .blob { opacity: 0.22; filter: blur(90px); }
 
 .b1 {
   width: 44vw; height: 44vw; left: -8vw; top: -10vw;
@@ -218,8 +181,6 @@ html[data-theme="light"] .blob { opacity: 0.22; filter: blur(90px); }
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-/* "overlay" sobre fundo claro cinza a tela inteira: quase desligado aqui */
-html[data-theme="light"] .bg-grain { opacity: 0.05; mix-blend-mode: multiply; }
 
 .bg-spot {
   background: radial-gradient(340px 340px at var(--mx, 50%) var(--my, 30%), color-mix(in srgb, var(--series-1) 13%, transparent), transparent 70%);
@@ -404,9 +365,6 @@ p { margin: 0; }
 }
 .icon-btn svg { width: 19px; height: 19px; }
 .icon-btn:hover { color: var(--series-1); border-color: color-mix(in srgb, var(--series-1) 42%, transparent); transform: rotate(18deg); }
-.ico-moon { display: none; }
-html[data-theme="light"] .ico-sun { display: none; }
-html[data-theme="light"] .ico-moon { display: block; }
 
 .pill {
   display: inline-flex;

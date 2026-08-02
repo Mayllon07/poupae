@@ -7,9 +7,9 @@
          Com media, a barra de status seguiria o tema do sistema e ficaria
          escura mesmo com o app no modo claro. -->
     <meta id="themeColor" name="theme-color" content="#050d0a" />
-    <!-- avisa cedo que o site tem os dois temas, para o navegador não
-         aplicar o escurecimento automático por cima do nosso modo claro -->
-    <meta name="color-scheme" content="dark light" />
+    <!-- app só escuro: avisa cedo, para o navegador não tentar
+         reinterpretar as cores por conta própria -->
+    <meta name="color-scheme" content="dark" />
     <title>Poupaê Aurora — sua rota até a meta</title>
     <meta name="description" content="Transforme um valor distante numa rota de pequenos depósitos: plano calculado, marcos visuais e conquistas." />
 
@@ -185,10 +185,6 @@
             <button id="installBtn" class="btn btn-ghost is-hidden" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 3.5v11m0 0 4-4m-4 4-4-4" /><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" /></svg>
               Instalar
-            </button>
-            <button id="themeBtn" class="icon-btn" type="button" aria-label="Alternar tema">
-              <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2m20 0h-2.2M5.9 5.9 4.4 4.4m15.2 15.2-1.5-1.5M18.1 5.9l1.5-1.5M4.4 19.6l1.5-1.5" /></svg>
-              <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.2A8.4 8.4 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2Z" /></svg>
             </button>
             <button id="newGoalBtn" class="btn btn-ghost is-hidden" type="button">Nova meta</button>
             <button id="editGoalBtn" class="btn btn-ghost is-hidden" type="button">Editar</button>
