@@ -4,7 +4,10 @@
 
 /* ── tokens ────────────────────────────────────────────── */
 :root {
-  color-scheme: dark;
+  /* "only" recusa o escurecimento forçado do navegador (Tema escuro
+     automático do Chrome no Android e afins). Sem ele, declarar apenas
+     "light" sinaliza "página só clara" e o sistema escurece por cima. */
+  color-scheme: only dark;
 
   --page: #050d0a;
   --page-2: #04120c;
@@ -52,7 +55,7 @@
 }
 
 html[data-theme="light"] {
-  color-scheme: light;
+  color-scheme: only light;
 
   --page: #f4f9f6;
   --page-2: #ffffff;
