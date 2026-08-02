@@ -117,6 +117,32 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* alguns navegadores (Samsung Internet entre eles) não herdam o realce
+   do html: precisa estar declarado no próprio elemento tocado */
+a,
+button,
+input,
+select,
+textarea,
+summary,
+label,
+[role="button"],
+[tabindex] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Foco: sem anel ao tocar ou clicar, mas mantido para quem navega
+   pelo teclado — remover o foco por completo deixaria o app inutilizável
+   sem toque. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+
 @media (pointer: coarse) {
   body {
     -webkit-user-select: none;
