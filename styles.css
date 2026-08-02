@@ -106,6 +106,31 @@ body {
 .is-hidden { display: none !important; }
 .muted { color: var(--ink-2); }
 
+/* ── toque ──────────────────────────────────────────────
+   Sem o quadrado de realce ao tocar, e sem selecionar texto
+   no celular. Só os campos digitáveis seguem selecionáveis,
+   senão não dá para editar nem posicionar o cursor.        */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none; /* sem menu de copiar no toque longo */
+  }
+
+  input,
+  textarea,
+  select,
+  [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+}
+
 /* ── barra de rolagem oculta (a rolagem continua normal) ─ */
 html, body {
   scrollbar-width: none;      /* Firefox */
