@@ -39,17 +39,18 @@
     <main>
       <h1>Poupaê — testes das funções puras</h1>
       <p class="sub">
-        Roda no navegador porque não há Node no ambiente. Carrega o
-        <code>app.js</code> de verdade e exercita o cálculo do plano.
+        Carrega o <code>core.js</code> de verdade — o mesmo que o app usa —
+        e exercita o cálculo do plano. Funciona abrindo o arquivo direto
+        do disco ou por um servidor local.
       </p>
       <div id="resumo">executando…</div>
       <div id="saida"></div>
     </main>
 
-    <!-- O app.js espera os elementos da interface. Em vez de duplicar a
-         lógica num arquivo separado (que sairia de sincronia), carregamos
-         o index.html num iframe oculto e testamos as funções reais. -->
-    <iframe id="app" src="index.html" style="width:0;height:0;border:0;position:absolute;left:-9999px"></iframe>
+    <!-- Sem iframe de propósito: abrir por file:// dá origem "null" a cada
+         arquivo, o que torna o iframe cross-origin e bloqueia todo acesso
+         a ele. Como core.js não depende de DOM, basta carregá-lo aqui. -->
+    <script src="core.js"></script>
 
     <script>
       const grupos = [];
@@ -74,22 +75,7 @@
 
       const perto = (a, b, tol = 0.011) => Math.abs(a - b) <= tol;
 
-      function rodar(app) {
-        // Só declarações `function` vão parar no window. As funções escritas
-        // como `const nome = () => …` ficam no escopo léxico do script, então
-        // precisam ser resolvidas por eval indireto dentro do iframe.
-        const F = (nome) => app.eval(nome);
-        const buildAmounts = F("buildAmounts");
-        const countPeriods = F("countPeriods");
-        const statsOf = F("statsOf");
-        const monthlyRequired = F("monthlyRequired");
-        const streakOf = F("streakOf");
-        const analyticsOf = F("analyticsOf");
-        const createPlan = F("createPlan");
-        const sanitizeGoal = F("sanitizeGoal");
-        const parseMoney = F("parseMoney");
-        const freqPlural = F("freqPlural");
-
+      function rodar() {
         /* ── buildAmounts ── */
         grupo("buildAmounts — divisão do total");
         checa("valor fixo divide igualmente", buildAmounts(100, 4, "fixed"), [25, 25, 25, 25]);
@@ -257,15 +243,13 @@
           falhas: grupos.flatMap((g) => g.casos.filter((c) => !c.ok).map((c) => `${g.nome} · ${c.nome}: ${c.det}`)) };
       }
 
-      document.getElementById("app").addEventListener("load", (e) => {
-        try {
-          rodar(e.target.contentWindow);
-        } catch (err) {
-          document.getElementById("resumo").className = "fail";
-          document.getElementById("resumo").textContent = `erro ao rodar: ${err.message}`;
-          window.__resultado = { erro: err.message, stack: err.stack };
-        }
-      });
+      try {
+        rodar();
+      } catch (err) {
+        document.getElementById("resumo").className = "fail";
+        document.getElementById("resumo").textContent = `erro ao rodar: ${err.message}`;
+        window.__resultado = { erro: err.message, stack: err.stack };
+      }
     </script>
   </body>
 </html>

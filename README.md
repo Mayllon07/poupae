@@ -26,7 +26,9 @@ Atalho de teclado: `Ctrl + K` abre a paleta de comandos.
 |---|---|
 | `index.html` | Estrutura de todas as telas |
 | `styles.css` | Sistema visual e animações |
-| `app.js` | Lógica, render e motor de animação |
+| `core.js` | Cálculo do plano — lógica pura, sem DOM |
+| `app.js` | Interface, render e motor de animação |
+| `testes.html` | Suíte de testes do `core.js` |
 | `manifest.webmanifest` | Torna o app instalável (nome, ícones, atalhos) |
 | `sw.js` | Service worker — cache offline |
 | `icons/logo-mark.png` | Marca exibida dentro do app |
@@ -118,6 +120,16 @@ const VERSION = "poupae-aurora-v7";
 No app já instalado no celular, a versão nova só assume quando **todas** as
 janelas dele são fechadas. Feche pelos aplicativos recentes e abra de novo;
 voltar à tela inicial não basta.
+
+## Testes
+
+Abra `testes.html` — direto do disco ou pelo servidor local, funciona nos dois.
+Ele carrega o `core.js` de verdade, o mesmo que o app usa, e cobre o cálculo do
+plano: divisão dos valores, contagem de períodos, progresso, sequência no prazo,
+leitura de comportamento e a higienização da importação.
+
+Rode depois de qualquer mudança em `core.js`. Todo cálculo novo deve nascer lá,
+não no `app.js` — é essa separação que permite testar sem montar a interface.
 
 ## Rodar localmente
 
