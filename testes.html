@@ -118,6 +118,15 @@
         checa("formato pt-BR com vírgula", parseMoney("1.234,56"), 1234.56);
         checa("vazio é zero", parseMoney(""), 0);
         checa("texto inválido é zero", parseMoney("abc"), 0);
+        checa("milhar da máscara sem vírgula", parseMoney("18.000"), 18000);
+        checa("milhar duplo da máscara", parseMoney("1.234.567"), 1234567);
+        checa("999.90 continua decimal (grupo de 2)", parseMoney("999.90"), 999.9);
+
+        grupo("fmtMoneyBR — valor para o campo");
+        checa("inteiro ganha ponto de milhar", fmtMoneyBR(18000), "18.000");
+        checa("centavos ganham vírgula", fmtMoneyBR(1628.5), "1.628,50");
+        checa("zero vira campo vazio", fmtMoneyBR(0), "");
+        checa("ida e volta preserva o valor", parseMoney(fmtMoneyBR(1234.56)), 1234.56);
 
         /* ── statsOf ── */
         grupo("statsOf — progresso da meta");

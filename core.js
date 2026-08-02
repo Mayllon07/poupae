@@ -41,15 +41,30 @@ const REASONS = {
 /* ── utilidades ──────────────────────────────────────────── */
 const money = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
 
-/* <input type="number"> sempre entrega ponto como separador decimal,
-   qualquer que seja o idioma. Tratar o ponto como milhar fazia
-   1500.50 virar 150050 — cem vezes o valor pedido. Só interpreta como
-   pt-BR quando há vírgula, que é o único caso em que o ponto é milhar. */
+/* Três formatos chegam aqui e o ponto significa coisas diferentes:
+   - "1.234,56" (máscara pt-BR): vírgula presente, ponto é milhar
+   - "18.000" (máscara sem centavos): grupos exatos de 3, ponto é milhar
+   - "1500.50" (legado do input number): ponto é decimal
+   Tratar todo ponto como milhar fazia 1500.50 virar 150050 — cem vezes
+   o valor pedido. A regra dos grupos de 3 separa os dois casos: "999.90"
+   não casa (grupo de 2) e segue decimal. */
 const parseMoney = (v) => {
   if (v === null || v === undefined || v === "") return 0;
   const s = String(v).trim();
-  const normalized = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
-  return Number(normalized) || 0;
+  if (s.includes(",")) return Number(s.replace(/\./g, "").replace(",", ".")) || 0;
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) return Number(s.replace(/\./g, "")) || 0;
+  return Number(s) || 0;
+};
+
+/* Valor -> texto do campo com máscara: "18.000" ou "1.628,50".
+   Sem casas quando é inteiro, para não poluir a digitação. */
+const fmtMoneyBR = (n) => {
+  if (!Number.isFinite(n) || n === 0) return "";
+  const hasCents = Math.round(money(n) * 100) % 100 !== 0;
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(n);
 };
 
 const toISO = (d) => d.toISOString().slice(0, 10);

@@ -245,11 +245,11 @@
                 </label>
                 <div class="grid-2">
                   <label class="field">
-                    <input id="goalAmount" type="number" min="1" step="0.01" placeholder=" " required />
+                    <input id="goalAmount" type="text" inputmode="decimal" autocomplete="off" data-money placeholder=" " required />
                     <span>Quanto quer juntar? (R$)</span>
                   </label>
                   <label class="field">
-                    <input id="currentAmount" type="number" min="0" step="0.01" placeholder=" " />
+                    <input id="currentAmount" type="text" inputmode="decimal" autocomplete="off" data-money placeholder=" " />
                     <span>Já tem guardado? (R$)</span>
                   </label>
                 </div>
@@ -299,7 +299,7 @@
                   </label>
                 </fieldset>
                 <label class="field">
-                  <input id="monthlyCapacity" type="number" min="0" step="0.01" placeholder=" " />
+                  <input id="monthlyCapacity" type="text" inputmode="decimal" autocomplete="off" data-money placeholder=" " />
                   <span>Confortável por mês (R$)</span>
                 </label>
               </div>
@@ -397,7 +397,7 @@
                 <p class="muted" id="actionText">Crie uma meta para ver o próximo passo aqui.</p>
                 <div class="action-row">
                   <label class="field field-inline">
-                    <input id="customAmount" type="number" min="0" step="0.01" placeholder=" " />
+                    <input id="customAmount" type="text" inputmode="decimal" autocomplete="off" data-money placeholder=" " />
                     <span>Outro valor</span>
                   </label>
                   <button id="payBtn" class="btn btn-primary" type="button"><span>Concluir</span></button>
@@ -628,7 +628,7 @@
         <h2 id="depEditTitle">Editar depósito</h2>
         <p id="depEditSub" class="muted"></p>
         <label class="field">
-          <input id="depEditAmount" type="number" min="0" step="0.01" placeholder=" " />
+          <input id="depEditAmount" type="text" inputmode="decimal" autocomplete="off" data-money placeholder=" " />
           <span>Valor (R$)</span>
         </label>
         <label class="field">

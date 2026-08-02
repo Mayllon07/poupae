@@ -236,6 +236,49 @@ const state = {
   step: 1,
 };
 
+/* ── máscara de dinheiro (campos [data-money]) ───────────────
+   Formata enquanto digita: "10000" vira "10.000", "1628,5" vira
+   "1.628,5". O cursor é reposicionado contando quantos dígitos
+   existiam antes dele — inserir um ponto de milhar não o desloca. */
+function maskMoney(event) {
+  const el = event.target;
+  const caret = el.selectionStart ?? el.value.length;
+  let raw = el.value;
+
+  // teclado numérico que insere "." como decimal: vira vírgula
+  if (event.data === "." && caret > 0 && raw[caret - 1] === ".") {
+    raw = `${raw.slice(0, caret - 1)},${raw.slice(caret)}`;
+  }
+  // colado do tipo "1500.50": ponto único seguido de 1–2 casas é decimal
+  if (/^\d+\.\d{1,2}$/.test(raw.trim())) raw = raw.trim().replace(".", ",");
+
+  let digitsBefore = 0;
+  for (let i = 0; i < caret && i < raw.length; i++) {
+    if (/[\d,]/.test(raw[i])) digitsBefore += 1;
+  }
+
+  let s = raw.replace(/[^\d,]/g, "");
+  const firstComma = s.indexOf(",");
+  if (firstComma !== -1) {
+    s = `${s.slice(0, firstComma + 1)}${s.slice(firstComma + 1).replace(/,/g, "").slice(0, 2)}`;
+  }
+  let [int, dec] = s.split(",");
+  int = int.replace(/^0+(?=\d)/, "").slice(0, 12);
+  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const next = dec === undefined ? intFmt : `${intFmt},${dec}`;
+
+  el.value = next;
+  let pos = 0;
+  let seen = 0;
+  while (pos < next.length && seen < digitsBefore) {
+    if (/[\d,]/.test(next[pos])) seen += 1;
+    pos += 1;
+  }
+  el.setSelectionRange(pos, pos);
+}
+
+$$("input[data-money]").forEach((el) => el.addEventListener("input", maskMoney));
+
 /* ── motor de animação ───────────────────────────────────── */
 function countTo(el, value, fmt = (v) => currency.format(v)) {
   const from = Number(el.dataset.v || 0);
@@ -1064,11 +1107,11 @@ function startEditGoal() {
   if (!state.goal) return;
   const st = statsOf(state.goal);
   els.goalName.value = state.goal.name;
-  els.goalAmount.value = state.goal.targetAmount;
-  els.currentAmount.value = st.saved;
+  els.goalAmount.value = fmtMoneyBR(state.goal.targetAmount);
+  els.currentAmount.value = fmtMoneyBR(st.saved);
   els.deadline.value = state.goal.deadline;
   els.frequency.value = state.goal.frequency;
-  els.monthlyCapacity.value = state.goal.monthlyCapacity || "";
+  els.monthlyCapacity.value = fmtMoneyBR(state.goal.monthlyCapacity);
   els.goalReason.value = state.goal.reason;
   const radio = $(`input[name="strategy"][value="${state.goal.strategy}"]`);
   if (radio) radio.checked = true;
@@ -1113,7 +1156,7 @@ function openDepositEditor(id) {
   if (!d) return;
   editingDepositId = id;
   els.depEditSub.textContent = `Depósito ${d.number} de ${state.goal.deposits.length}${d.paid ? " · já concluído" : ""}`;
-  els.depEditAmount.value = d.paid ? d.paidAmount || d.amount : d.amount;
+  els.depEditAmount.value = fmtMoneyBR(d.paid ? d.paidAmount || d.amount : d.amount);
   els.depEditDate.value = String(d.date).slice(0, 10);
   els.depEdit.classList.remove("is-hidden");
   els.depEditAmount.focus();
@@ -1726,10 +1769,10 @@ els.goalForm.addEventListener("change", renderPreview);
 
 els.exampleBtn.addEventListener("click", () => {
   els.goalName.value = "Reserva de emergência";
-  els.goalAmount.value = "18000";
-  els.currentAmount.value = "1200";
+  els.goalAmount.value = fmtMoneyBR(18000);
+  els.currentAmount.value = fmtMoneyBR(1200);
   els.frequency.value = "weekly";
-  els.monthlyCapacity.value = "1400";
+  els.monthlyCapacity.value = fmtMoneyBR(1400);
   els.goalReason.value = "reserva";
   $('input[name="strategy"][value="progressive"]').checked = true;
   setDefaultDeadline();
