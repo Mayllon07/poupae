@@ -26,7 +26,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body data-palette="#0f9d6e,#6d4aff" data-mode="dark">
+  <body data-palette="#0f9d6e,#6d4aff" data-mode="dark" class="is-booting">
     <!-- ── camadas de fundo ───────────────────────────────── -->
     <div class="bg-aurora" aria-hidden="true">
       <span class="blob b1"></span>
@@ -38,6 +38,16 @@
     <div class="bg-grid" aria-hidden="true"></div>
     <div class="bg-grain" aria-hidden="true"></div>
     <div id="spotlight" class="bg-spot" aria-hidden="true"></div>
+
+    <!-- primeiro quadro: esqueleto no lugar do salto de conteúdo -->
+    <div id="boot" class="boot" aria-hidden="true">
+      <div class="boot-bar sk"></div>
+      <div class="boot-hero sk"></div>
+      <div class="boot-kpis">
+        <span class="sk"></span><span class="sk"></span><span class="sk"></span><span class="sk"></span>
+      </div>
+      <div class="boot-card sk"></div>
+    </div>
 
     <!-- Tudo que rola vive aqui dentro. A rolagem sai do documento
          porque a barra do documento, no Android, é desenhada pelo
@@ -412,6 +422,18 @@
               </div>
               <button id="newGoalBtn2" class="btn btn-primary" type="button"><span>Nova meta</span></button>
             </div>
+
+            <article id="compareCard" class="glass pad is-hidden">
+              <div class="card-head">
+                <div>
+                  <p class="eyebrow">Comparação</p>
+                  <h3>Progresso lado a lado</h3>
+                </div>
+                <span class="pill" id="comparePill">—</span>
+              </div>
+              <div id="compareList" class="compare-list"></div>
+            </article>
+
             <div id="goalsList" class="goals"></div>
           </section>
 
@@ -502,7 +524,10 @@
                 <p class="eyebrow">Conquistas</p>
                 <h2 class="display-sm">Marcos da jornada</h2>
               </div>
-              <span class="pill" id="awardsPill">0 / 6</span>
+              <div class="head-actions">
+                <span class="pill" id="awardsPill">0 / 8</span>
+                <button id="shareBtn" class="btn btn-primary" type="button"><span>Compartilhar progresso</span></button>
+              </div>
             </div>
             <div id="awardsList" class="awards"></div>
           </section>
@@ -619,7 +644,23 @@
     </div>
 
     <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
-    <div id="toast" class="toast" role="status" aria-live="polite"><b></b><i></i></div>
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <b id="toastText"></b>
+      <button id="toastAction" class="toast-action is-hidden" type="button">Desfazer</button>
+      <i></i>
+    </div>
+
+    <div id="confirmBox" class="cmd is-hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="cmd-box glass install-help">
+        <h2 id="confirmTitle">Confirmar</h2>
+        <p id="confirmText" class="muted"></p>
+        <p id="confirmNote" class="install-note"></p>
+        <div class="dialog-actions">
+          <button id="confirmCancel" class="btn btn-ghost" type="button">Cancelar</button>
+          <button id="confirmOk" class="btn btn-danger" type="button">Confirmar</button>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>

@@ -124,6 +124,9 @@ const els = {
   insightText: $("#insightText"),
 
   goalsList: $("#goalsList"),
+  compareCard: $("#compareCard"),
+  comparePill: $("#comparePill"),
+  compareList: $("#compareList"),
   recalcBtn: $("#recalcBtn"),
   chartCaption: $("#chartCaption"),
   planHealth: $("#planHealth"),
@@ -140,6 +143,7 @@ const els = {
   depositList: $("#depositList"),
   awardsPill: $("#awardsPill"),
   awardsList: $("#awardsList"),
+  shareBtn: $("#shareBtn"),
 
   accountForm: $("#accountForm"),
   accountName: $("#accountName"),
@@ -168,10 +172,22 @@ const els = {
 
   scroller: $("#scroller"),
   toast: $("#toast"),
+  toastText: $("#toastText"),
+  toastAction: $("#toastAction"),
+  confirmBox: $("#confirmBox"),
+  confirmTitle: $("#confirmTitle"),
+  confirmText: $("#confirmText"),
+  confirmNote: $("#confirmNote"),
+  confirmOk: $("#confirmOk"),
+  confirmCancel: $("#confirmCancel"),
   confetti: $("#confetti"),
   field: $("#fieldCanvas"),
   spotlight: $("#spotlight"),
 };
+
+/* rede de segurança: se a inicialização falhar, o esqueleto não pode
+   ficar cobrindo o app para sempre */
+setTimeout(() => document.body.classList.remove("is-booting"), 4000);
 
 /* ── armazenamento ───────────────────────────────────────── */
 function loadAccounts() {
@@ -535,17 +551,51 @@ function burstConfetti() {
   requestAnimationFrame(tick);
 }
 
-/* toast */
+/* toast — com ação opcional de desfazer */
 let toastTimer;
-function toast(message) {
+let pendingUndo = null;
+
+function hideToast() {
+  els.toast.classList.remove("is-on");
+  pendingUndo = null;
+}
+
+function toast(message, undo = null) {
   clearTimeout(toastTimer);
-  els.toast.querySelector("b").textContent = message;
+  els.toastText.textContent = message;
+  pendingUndo = undo;
+
+  els.toastAction.classList.toggle("is-hidden", !undo);
+  if (undo) els.toastAction.textContent = undo.label || "Desfazer";
+
+  // com ação, o aviso precisa durar o suficiente para ser clicado
+  const vida = undo ? 7000 : 2900;
   const bar = els.toast.querySelector("i");
   bar.style.animation = "none";
   void bar.offsetWidth;
   bar.style.animation = "";
+  bar.style.animationDuration = `${vida}ms`;
+
   els.toast.classList.add("is-on");
-  toastTimer = setTimeout(() => els.toast.classList.remove("is-on"), 2900);
+  toastTimer = setTimeout(hideToast, vida);
+}
+
+/* diálogo de confirmação próprio: o confirm() nativo trava a thread,
+   ignora o visual do app e não dá para estilizar */
+let confirmAction = null;
+
+function askConfirm({ title, text, note = "", okLabel = "Confirmar", onOk }) {
+  els.confirmTitle.textContent = title;
+  els.confirmText.textContent = text;
+  els.confirmNote.innerHTML = note;
+  els.confirmOk.textContent = okLabel;
+  confirmAction = onOk;
+  els.confirmBox.classList.remove("is-hidden");
+}
+
+function closeConfirm() {
+  els.confirmBox.classList.add("is-hidden");
+  confirmAction = null;
 }
 
 /* ── render ──────────────────────────────────────────────── */
@@ -556,6 +606,7 @@ function render() {
   renderNav();
   renderAccount();
   renderGoals();
+  renderCompare();
   if (!state.goal) return;
   renderDashboard();
   renderRoute();
@@ -1037,6 +1088,40 @@ function renderAwards() {
   els.awardsPill.textContent = `${done} / ${AWARDS.length}`;
 }
 
+/* comparação entre metas — só faz sentido com mais de uma */
+function renderCompare() {
+  const metas = state.goals;
+  els.compareCard.classList.toggle("is-hidden", metas.length < 2);
+  if (metas.length < 2) return;
+
+  const dados = metas.map((g) => ({ goal: g, st: statsOf(g) }));
+  const maiorAlvo = Math.max(...dados.map((d) => d.goal.targetAmount));
+  const totalGuardado = dados.reduce((s, d) => s + d.st.saved, 0);
+  const totalAlvo = dados.reduce((s, d) => s + d.goal.targetAmount, 0);
+
+  els.comparePill.textContent = `${currency.format(totalGuardado)} de ${currency.format(totalAlvo)}`;
+
+  els.compareList.innerHTML = dados
+    .slice()
+    .sort((a, b) => b.st.percent - a.st.percent)
+    .map(({ goal, st }) => {
+      // a barra é proporcional ao maior alvo, para o tamanho das metas
+      // ficar visível na comparação, não só a porcentagem
+      const largura = (goal.targetAmount / maiorAlvo) * 100;
+      const preenchido = st.percent;
+      const ativa = state.goal?.id === goal.id;
+      return `
+        <button class="compare-row ${ativa ? "is-active" : ""}" data-open="${goal.id}" type="button">
+          <span class="compare-name">${goal.name}${ativa ? " <i>ativa</i>" : ""}</span>
+          <span class="compare-track" style="width:${largura.toFixed(1)}%">
+            <i style="width:${preenchido.toFixed(1)}%"></i>
+          </span>
+          <span class="compare-value">${st.percent.toFixed(0)}%<small>${currency.format(st.saved)} / ${currency.format(goal.targetAmount)}</small></span>
+        </button>`;
+    })
+    .join("");
+}
+
 /* metas */
 function renderGoals() {
   if (!state.goals.length) {
@@ -1276,15 +1361,31 @@ function openGoal(id) {
   render();
 }
 
+/* exclusão otimista: apaga na hora e oferece desfazer, em vez de
+   interromper com um confirm() antes de qualquer coisa acontecer */
 function deleteGoal(id) {
-  const goal = state.goals.find((g) => g.id === id);
-  if (!goal || !confirm(`Excluir a meta "${goal.name}"?`)) return;
-  state.goals = state.goals.filter((g) => g.id !== id);
-  if (state.goal?.id === id) state.goal = state.goals[0] || null;
+  const posicao = state.goals.findIndex((g) => g.id === id);
+  if (posicao < 0) return;
+
+  const removida = state.goals[posicao];
+  const eraAtiva = state.goal?.id === id;
+
+  state.goals.splice(posicao, 1);
+  if (eraAtiva) state.goal = state.goals[0] || null;
   saveGoals();
   if (!state.goal) localStorage.removeItem(activeKey());
   render();
-  toast("Meta excluída.");
+
+  toast(`"${removida.name}" excluída.`, {
+    label: "Desfazer",
+    run: () => {
+      state.goals.splice(posicao, 0, removida); // volta na mesma posição
+      if (eraAtiva) state.goal = removida;
+      saveGoals();
+      render();
+      toast("Meta restaurada.");
+    },
+  });
 }
 
 function showScreen(screen) {
@@ -1431,14 +1532,121 @@ async function updateAccount(event) {
 }
 
 function deleteAccount() {
-  if (!confirm("Excluir sua conta local? Isso apaga suas metas neste navegador.")) return;
-  const email = state.user.email;
-  delete state.accounts[email];
-  saveAccounts();
-  localStorage.removeItem(goalsKey(email));
-  localStorage.removeItem(activeKey(email));
-  logout();
-  toast("Conta excluída deste dispositivo.");
+  const total = state.goals.length;
+  askConfirm({
+    title: "Excluir esta conta?",
+    text: `Isso apaga a conta e ${total} meta${total === 1 ? "" : "s"} deste navegador.`,
+    note: "Isso <b>não tem como desfazer</b>. Exporte um backup antes se quiser guardar seus dados.",
+    okLabel: "Excluir tudo",
+    onOk: () => {
+      const email = state.user.email;
+      delete state.accounts[email];
+      saveAccounts();
+      localStorage.removeItem(goalsKey(email));
+      localStorage.removeItem(activeKey(email));
+      logout();
+      toast("Conta excluída deste dispositivo.");
+    },
+  });
+}
+
+/* ── compartilhar progresso como imagem ──────────────────── */
+function drawShareCard(goal, st) {
+  const S = 1080;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const x = c.getContext("2d");
+
+  const fundo = x.createLinearGradient(0, 0, S, S);
+  fundo.addColorStop(0, "#0d2019");
+  fundo.addColorStop(1, "#04100c");
+  x.fillStyle = fundo;
+  x.fillRect(0, 0, S, S);
+
+  const brilho = x.createRadialGradient(S * 0.75, S * 0.2, 0, S * 0.75, S * 0.2, S * 0.7);
+  brilho.addColorStop(0, "rgba(52,211,153,0.28)");
+  brilho.addColorStop(1, "rgba(52,211,153,0)");
+  x.fillStyle = brilho;
+  x.fillRect(0, 0, S, S);
+
+  // anel de progresso
+  const cx = S / 2, cy = S * 0.44, r = 190;
+  x.lineWidth = 30;
+  x.lineCap = "round";
+  x.strokeStyle = "rgba(255,255,255,0.10)";
+  x.beginPath();
+  x.arc(cx, cy, r, 0, Math.PI * 2);
+  x.stroke();
+
+  const arco = x.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  arco.addColorStop(0, "#34d399");
+  arco.addColorStop(1, "#a78bfa");
+  x.strokeStyle = arco;
+  x.beginPath();
+  x.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * st.percent) / 100);
+  x.stroke();
+
+  x.textAlign = "center";
+  x.fillStyle = "#ffffff";
+  x.font = "700 130px Sora, Inter, system-ui, sans-serif";
+  x.fillText(`${st.percent.toFixed(0)}%`, cx, cy + 40);
+
+  x.fillStyle = "rgba(255,255,255,0.55)";
+  x.font = "600 30px Inter, system-ui, sans-serif";
+  x.fillText("CONCLUÍDO", cx, cy + 92);
+
+  x.fillStyle = "#ffffff";
+  x.font = "700 62px Sora, Inter, system-ui, sans-serif";
+  const nome = goal.name.length > 24 ? `${goal.name.slice(0, 23)}…` : goal.name;
+  x.fillText(nome, cx, S * 0.755);
+
+  x.fillStyle = "#6ee7b7";
+  x.font = "600 42px Inter, system-ui, sans-serif";
+  x.fillText(`${currency.format(st.saved)} de ${currency.format(goal.targetAmount)}`, cx, S * 0.815);
+
+  const streak = streakOf(goal);
+  if (streak.current >= 2) {
+    x.fillStyle = "#e2c178";
+    x.font = "600 34px Inter, system-ui, sans-serif";
+    x.fillText(`${streak.current} depósitos seguidos no prazo`, cx, S * 0.868);
+  }
+
+  x.fillStyle = "rgba(255,255,255,0.4)";
+  x.font = "600 30px Inter, system-ui, sans-serif";
+  x.fillText("Poupaê Aurora", cx, S * 0.945);
+
+  return c;
+}
+
+async function shareProgress() {
+  if (!state.goal) return toast("Crie uma meta antes de compartilhar.");
+  const st = statsOf(state.goal);
+  const canvas = drawShareCard(state.goal, st);
+
+  const blob = await new Promise((ok) => canvas.toBlob(ok, "image/png"));
+  if (!blob) return toast("Não foi possível gerar a imagem.");
+
+  const arquivo = new File([blob], `poupae-${todayISO()}.png`, { type: "image/png" });
+  const texto = `${state.goal.name}: ${st.percent.toFixed(0)}% concluído.`;
+
+  // canShare com files é o único jeito confiável de saber se o
+  // compartilhamento aceita imagem — navigator.share sozinho não basta
+  if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+    try {
+      await navigator.share({ files: [arquivo], title: "Meu progresso no Poupaê", text: texto });
+      return;
+    } catch (e) {
+      if (e.name === "AbortError") return; // usuário fechou, não é erro
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = arquivo.name;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Imagem baixada. Compartilhe de onde quiser.");
 }
 
 /* ── backup: exportar e importar ─────────────────────────── */
@@ -1658,6 +1866,7 @@ els.recalcBtn.addEventListener("click", recalculate);
 els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
 
+els.shareBtn.addEventListener("click", shareProgress);
 els.exportBtn.addEventListener("click", exportData);
 els.importBtn.addEventListener("click", () => els.importFile.click());
 els.importAuthBtn.addEventListener("click", () => els.importFile.click());
@@ -1703,6 +1912,20 @@ els.depositFilter.addEventListener("click", (event) => {
 
 els.planChart.addEventListener("pointermove", chartHover);
 els.planChart.addEventListener("pointerleave", chartLeave);
+
+els.toastAction.addEventListener("click", () => {
+  const acao = pendingUndo;
+  hideToast();
+  if (acao) acao.run();
+});
+
+els.confirmCancel.addEventListener("click", closeConfirm);
+els.confirmBox.addEventListener("click", (e) => { if (e.target === els.confirmBox) closeConfirm(); });
+els.confirmOk.addEventListener("click", () => {
+  const acao = confirmAction;
+  closeConfirm();
+  if (acao) acao();
+});
 
 els.depEditSave.addEventListener("click", saveDepositEdit);
 els.depEditCancel.addEventListener("click", closeDepositEditor);
@@ -1906,4 +2129,9 @@ goToStep(1);
 render();
 applyLaunchScreen();
 refreshInstallButton();
+/* O esqueleto some de forma síncrona: render() já montou o conteúdo.
+   Deixar isso num requestAnimationFrame era arriscado — em aba oculta
+   ou aparelho lento o quadro não vem, e o app ficaria invisível. */
+document.body.classList.remove("is-booting");
+
 requestAnimationFrame(() => { moveGlider(); observeReveals(); });

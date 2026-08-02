@@ -1459,6 +1459,93 @@ kbd {
   word-break: break-all;
 }
 
+/* ── esqueleto do primeiro quadro ──────────────────────── */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+}
+body.is-booting .boot { display: flex; }
+body.is-booting #scroller { visibility: hidden; }
+
+.sk {
+  border-radius: var(--r-lg);
+  background: linear-gradient(100deg, var(--glass-soft) 30%, color-mix(in srgb, var(--ink-3) 16%, transparent) 50%, var(--glass-soft) 70%);
+  background-size: 220% 100%;
+  border: 1px solid var(--glass-brd);
+  animation: skShimmer 1.5s linear infinite;
+}
+@keyframes skShimmer { to { background-position: -220% 0; } }
+
+.boot-bar { height: 62px; border-radius: 999px; }
+.boot-hero { height: 210px; }
+.boot-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.boot-kpis span { height: 92px; border-radius: var(--r-md); }
+.boot-card { flex: 1; min-height: 160px; }
+
+@media (max-width: 620px) {
+  .boot-kpis { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── comparação de metas ───────────────────────────────── */
+.compare-list { display: grid; gap: 10px; }
+.compare-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1.1fr) minmax(0, 2.4fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 260ms var(--ease), border-color 260ms var(--ease);
+}
+.compare-row:hover { background: var(--glass-soft); border-color: var(--glass-brd); }
+.compare-row.is-active { border-color: color-mix(in srgb, var(--series-1) 40%, transparent); }
+.compare-name { font-size: 0.88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compare-name i { font-style: normal; font-size: 0.68rem; color: var(--series-1); }
+.compare-track {
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-3) 22%, transparent);
+  overflow: hidden;
+  display: block;
+}
+.compare-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--series-1), var(--series-1-soft));
+  transition: width 900ms var(--ease);
+}
+.compare-value {
+  display: grid;
+  justify-items: end;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.compare-value small { font-family: Inter, sans-serif; font-size: 0.7rem; color: var(--ink-3); }
+
+.head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 620px) {
+  .compare-row { grid-template-columns: 1fr auto; row-gap: 8px; }
+  .compare-track { grid-column: 1 / -1; }
+}
+
 /* ── toast + confete ───────────────────────────────────── */
 .toast {
   position: fixed;
@@ -1478,7 +1565,25 @@ kbd {
   text-align: center;
   opacity: 0;
   transition: transform 560ms var(--ease-pop), opacity 400ms var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
 }
+.toast-action {
+  flex: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--series-1) 45%, transparent);
+  background: color-mix(in srgb, var(--series-1) 14%, transparent);
+  color: var(--series-1);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 220ms var(--ease);
+}
+.toast-action:hover { background: color-mix(in srgb, var(--series-1) 26%, transparent); }
 .toast.is-on { transform: translate(-50%, 0); opacity: 1; }
 .toast i {
   position: absolute;
