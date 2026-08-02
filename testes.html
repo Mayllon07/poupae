@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poupaê — testes</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        padding: 28px 20px 60px;
+        background: #050d0a;
+        color: #eaf5ef;
+        font: 15px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace;
+      }
+      main { max-width: 900px; margin: 0 auto; }
+      h1 { font-size: 1.3rem; margin: 0 0 4px; }
+      .sub { color: #748c81; margin: 0 0 22px; font-size: 0.85rem; }
+      #resumo {
+        padding: 14px 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 18px;
+        font-weight: 700;
+      }
+      #resumo.ok { background: rgba(12, 163, 12, 0.14); border-color: #0ca30c; }
+      #resumo.fail { background: rgba(208, 59, 59, 0.14); border-color: #d03b3b; }
+      .grupo { margin-bottom: 20px; }
+      .grupo > h2 { font-size: 0.82rem; letter-spacing: 0.12em; text-transform: uppercase; color: #34d399; margin: 0 0 8px; }
+      .caso { padding: 7px 12px; border-left: 3px solid #2c3b35; margin-bottom: 3px; border-radius: 0 8px 8px 0; }
+      .caso.pass { border-color: #0ca30c; }
+      .caso.fail { border-color: #d03b3b; background: rgba(208, 59, 59, 0.1); }
+      .caso b { font-weight: 600; }
+      .caso .det { display: block; color: #a6bdb1; font-size: 0.82rem; margin-top: 3px; }
+      .caso.fail .det { color: #ffb3b3; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Poupaê — testes das funções puras</h1>
+      <p class="sub">
+        Roda no navegador porque não há Node no ambiente. Carrega o
+        <code>app.js</code> de verdade e exercita o cálculo do plano.
+      </p>
+      <div id="resumo">executando…</div>
+      <div id="saida"></div>
+    </main>
+
+    <!-- O app.js espera os elementos da interface. Em vez de duplicar a
+         lógica num arquivo separado (que sairia de sincronia), carregamos
+         o index.html num iframe oculto e testamos as funções reais. -->
+    <iframe id="app" src="index.html" style="width:0;height:0;border:0;position:absolute;left:-9999px"></iframe>
+
+    <script>
+      const grupos = [];
+      let atual = null;
+      let passou = 0;
+      let falhou = 0;
+
+      const grupo = (nome) => { atual = { nome, casos: [] }; grupos.push(atual); };
+
+      function checa(nome, obtido, esperado) {
+        const a = JSON.stringify(obtido);
+        const b = JSON.stringify(esperado);
+        const ok = a === b;
+        ok ? passou++ : falhou++;
+        atual.casos.push({ nome, ok, det: ok ? "" : `obtido ${a} · esperado ${b}` });
+      }
+
+      function checaQue(nome, condicao, detalhe = "") {
+        condicao ? passou++ : falhou++;
+        atual.casos.push({ nome, ok: !!condicao, det: condicao ? "" : detalhe || "condição falsa" });
+      }
+
+      const perto = (a, b, tol = 0.011) => Math.abs(a - b) <= tol;
+
+      function rodar(app) {
+        // Só declarações `function` vão parar no window. As funções escritas
+        // como `const nome = () => …` ficam no escopo léxico do script, então
+        // precisam ser resolvidas por eval indireto dentro do iframe.
+        const F = (nome) => app.eval(nome);
+        const buildAmounts = F("buildAmounts");
+        const countPeriods = F("countPeriods");
+        const statsOf = F("statsOf");
+        const monthlyRequired = F("monthlyRequired");
+        const streakOf = F("streakOf");
+        const analyticsOf = F("analyticsOf");
+        const createPlan = F("createPlan");
+        const sanitizeGoal = F("sanitizeGoal");
+        const parseMoney = F("parseMoney");
+        const freqPlural = F("freqPlural");
+
+        /* ── buildAmounts ── */
+        grupo("buildAmounts — divisão do total");
+        checa("valor fixo divide igualmente", buildAmounts(100, 4, "fixed"), [25, 25, 25, 25]);
+        checaQue("a soma bate com o total pedido",
+          perto(buildAmounts(1000, 7, "fixed").reduce((a, b) => a + b, 0), 1000),
+          "arredondamento não pode criar nem perder centavos");
+        checaQue("progressiva soma o total mesmo com resto",
+          perto(buildAmounts(10000, 53, "progressive").reduce((a, b) => a + b, 0), 10000));
+        checaQue("progressiva é sempre crescente", (() => {
+          const v = buildAmounts(5000, 10, "progressive");
+          return v.every((x, i) => i === 0 || x >= v[i - 1]);
+        })());
+        checaQue("flexível varia mas fica perto da média", (() => {
+          const v = buildAmounts(1200, 12, "flexible");
+          const media = 100;
+          return v.every((x) => x > media * 0.6 && x < media * 1.5);
+        })());
+        checa("um só período recebe tudo", buildAmounts(750, 1, "progressive"), [750]);
+        checa("zero períodos não quebra", buildAmounts(500, 0, "fixed"), [500]);
+        checa("total zero devolve zeros", buildAmounts(0, 3, "fixed"), [0, 0, 0]);
+
+        /* ── countPeriods ── */
+        // O primeiro depósito cai no próprio dia de início, então o
+        // intervalo é inclusivo nas duas pontas: 1 a 8 de janeiro dá dois
+        // depósitos semanais, não um. É o que gera 53 num plano de um ano.
+        grupo("countPeriods — quantidade de depósitos");
+        checa("semanal conta o dia inicial e o final", countPeriods("2026-01-01", "2026-01-08", "weekly"), 2);
+        checa("janeiro inteiro, diária", countPeriods("2026-01-01", "2026-01-31", "daily"), 31);
+        checa("um ano, mensal, com as duas pontas", countPeriods("2026-01-01", "2027-01-01", "monthly"), 13);
+        checa("um ano, semanal, dá 53", countPeriods("2026-01-01", "2026-12-31", "weekly"), 53);
+        checa("prazo no passado devolve 1", countPeriods("2026-06-01", "2026-01-01", "weekly"), 1);
+        checa("mesmo dia devolve 1", countPeriods("2026-03-10", "2026-03-10", "weekly"), 1);
+        checaQue("nunca passa do teto de 730", countPeriods("2020-01-01", "2040-01-01", "daily") <= 730);
+
+        /* ── parseMoney (bug do separador decimal) ── */
+        grupo("parseMoney — separador decimal");
+        checa("ponto decimal do input number", parseMoney("999.90"), 999.9);
+        checa("1500.50 não vira 150050", parseMoney("1500.50"), 1500.5);
+        checa("inteiro simples", parseMoney("18000"), 18000);
+        checa("formato pt-BR com vírgula", parseMoney("1.234,56"), 1234.56);
+        checa("vazio é zero", parseMoney(""), 0);
+        checa("texto inválido é zero", parseMoney("abc"), 0);
+
+        /* ── statsOf ── */
+        grupo("statsOf — progresso da meta");
+        const meta = {
+          targetAmount: 1000, currentAmount: 100, deadline: "2030-01-01",
+          frequency: "weekly",
+          deposits: [
+            { id: "a", number: 1, date: "2026-01-01", amount: 300, paid: true, paidAt: "2026-01-01T10:00:00.000Z", paidAmount: 300 },
+            { id: "b", number: 2, date: "2026-01-08", amount: 300, paid: true, paidAt: "2026-01-09T10:00:00.000Z", paidAmount: 200 },
+            { id: "c", number: 3, date: "2026-01-15", amount: 300, paid: false, paidAt: "", paidAmount: 0 },
+          ],
+        };
+        const st = statsOf(meta);
+        checa("guardado usa o valor pago, não o previsto", st.saved, 600);
+        checa("falta é alvo menos guardado", st.remaining, 400);
+        checa("percentual", Math.round(st.percent), 60);
+        checa("próximo é o primeiro pendente", st.next.id, "c");
+        checa("conta os pagos", st.paid.length, 2);
+        checa("sem meta não quebra", statsOf(null).percent, 0);
+        checaQue("percentual nunca passa de 100", (() => {
+          const cheia = { ...meta, targetAmount: 100 };
+          return statsOf(cheia).percent === 100;
+        })());
+        checaQue("falta nunca fica negativa", statsOf({ ...meta, targetAmount: 100 }).remaining === 0);
+
+        /* ── streakOf ── */
+        grupo("streakOf — sequência no prazo");
+        const s1 = streakOf(meta);
+        checa("atraso zera a sequência corrente", s1.current, 0);
+        checa("um no prazo antes do atraso", s1.onTime, 1);
+        checa("um atrasado", s1.late, 1);
+        checa("melhor sequência preservada", s1.best, 1);
+        const todosNoPrazo = { ...meta, deposits: meta.deposits.map((d) => ({ ...d, paid: true, paidAt: `${d.date}T09:00:00.000Z`, paidAmount: d.amount })) };
+        checa("três seguidos no prazo", streakOf(todosNoPrazo).current, 3);
+        checa("pagar no próprio dia conta como no prazo",
+          streakOf({ deposits: [{ date: "2026-05-10", paid: true, paidAt: "2026-05-10T23:00:00.000Z" }] }).current, 1);
+        checa("sem meta devolve zeros", streakOf(null).best, 0);
+        checaQue("a sequência para no primeiro pendente", (() => {
+          const g = { deposits: [
+            { date: "2026-01-01", paid: true, paidAt: "2026-01-01T09:00:00.000Z" },
+            { date: "2026-01-08", paid: false, paidAt: "" },
+            { date: "2026-01-15", paid: true, paidAt: "2026-01-15T09:00:00.000Z" },
+          ] };
+          return streakOf(g).current === 1;
+        })(), "o pagamento depois de um buraco não pode continuar a contagem");
+
+        /* ── analyticsOf ── */
+        grupo("analyticsOf — leitura de comportamento");
+        checa("sem pagamento não há leitura", analyticsOf({ deposits: [] }), null);
+        const an = analyticsOf(meta);
+        checa("conta os pagos", an.total, 2);
+        checa("média do planejado", an.planejado, 300);
+        checa("média do realizado usa o valor pago", an.realizado, 250);
+        checaQue("antecedência é número finito", Number.isFinite(an.antecedencia));
+
+        /* ── monthlyRequired ── */
+        grupo("monthlyRequired — média mensal");
+        const mensal = { frequency: "monthly", deposits: [{ amount: 500 }, { amount: 500 }] };
+        checa("mensal é a própria média", monthlyRequired(mensal), 500);
+        checa("semanal multiplica por 4,33", monthlyRequired({ frequency: "weekly", deposits: [{ amount: 100 }] }), 433);
+        checa("diária multiplica por 30", monthlyRequired({ frequency: "daily", deposits: [{ amount: 10 }] }), 300);
+        checa("sem depósitos é zero", monthlyRequired({ frequency: "weekly", deposits: [] }), 0);
+
+        /* ── createPlan ── */
+        grupo("createPlan — plano completo");
+        const plano = createPlan({
+          name: "Teste", targetAmount: 1200, currentAmount: 200, deadline: "2026-12-31",
+          frequency: "monthly", strategy: "fixed", monthlyCapacity: 0, reason: "reserva",
+        });
+        checaQue("gera depósitos", plano.deposits.length > 0);
+        checaQue("a soma cobre o que falta juntar",
+          perto(plano.deposits.reduce((s, d) => s + d.amount, 0), 1000),
+          "alvo 1200 com 200 já guardados pede 1000");
+        checaQue("todos começam pendentes", plano.deposits.every((d) => !d.paid));
+        checaQue("numeração é sequencial", plano.deposits.every((d, i) => d.number === i + 1));
+        checaQue("ids são únicos", new Set(plano.deposits.map((d) => d.id)).size === plano.deposits.length);
+        checaQue("registra a criação no histórico", plano.history[0].type === "created");
+        checaQue("datas em ordem crescente",
+          plano.deposits.every((d, i) => i === 0 || d.date >= plano.deposits[i - 1].date));
+
+        /* ── sanitizeGoal (importação) ── */
+        grupo("sanitizeGoal — defesa na importação");
+        checa("objeto vazio é rejeitado", sanitizeGoal({}), null);
+        checa("sem depósitos é rejeitado", sanitizeGoal({ name: "x", targetAmount: 100 }), null);
+        checa("alvo zero é rejeitado", sanitizeGoal({ name: "x", targetAmount: 0, deposits: [] }), null);
+        checa("nulo é rejeitado", sanitizeGoal(null), null);
+        const limpa = sanitizeGoal({ name: "Ok", targetAmount: 500, deposits: [{ amount: 50 }], frequency: "inventada", strategy: "hacker", reason: "xxx" });
+        checa("frequência inválida cai no padrão", limpa.frequency, "weekly");
+        checa("estratégia inválida cai no padrão", limpa.strategy, "fixed");
+        checa("motivo inválido cai no padrão", limpa.reason, "reserva");
+        checaQue("depósito sem id ganha um", !!limpa.deposits[0].id);
+        checaQue("valor negativo em guardado vira zero",
+          sanitizeGoal({ name: "n", targetAmount: 100, currentAmount: -50, deposits: [] }).currentAmount === 0);
+
+        /* ── plural ── */
+        grupo("freqPlural — concordância");
+        checa("semanal", freqPlural("weekly"), "semanais");
+        checa("mensal", freqPlural("monthly"), "mensais");
+        checa("diária", freqPlural("daily"), "diários");
+
+        desenhar();
+      }
+
+      function desenhar() {
+        const total = passou + falhou;
+        const resumo = document.getElementById("resumo");
+        resumo.className = falhou ? "fail" : "ok";
+        resumo.textContent = falhou
+          ? `${falhou} de ${total} falharam · ${passou} passaram`
+          : `${passou} testes passaram`;
+
+        document.getElementById("saida").innerHTML = grupos.map((g) => `
+          <section class="grupo">
+            <h2>${g.nome}</h2>
+            ${g.casos.map((c) => `
+              <div class="caso ${c.ok ? "pass" : "fail"}">
+                <b>${c.ok ? "✓" : "✕"} ${c.nome}</b>
+                ${c.det ? `<span class="det">${c.det}</span>` : ""}
+              </div>`).join("")}
+          </section>`).join("");
+
+        window.__resultado = { passou, falhou, total,
+          falhas: grupos.flatMap((g) => g.casos.filter((c) => !c.ok).map((c) => `${g.nome} · ${c.nome}: ${c.det}`)) };
+      }
+
+      document.getElementById("app").addEventListener("load", (e) => {
+        try {
+          rodar(e.target.contentWindow);
+        } catch (err) {
+          document.getElementById("resumo").className = "fail";
+          document.getElementById("resumo").textContent = `erro ao rodar: ${err.message}`;
+          window.__resultado = { erro: err.message, stack: err.stack };
+        }
+      });
+    </script>
+  </body>
+</html>

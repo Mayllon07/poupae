@@ -1,7 +1,7 @@
 /* Poupaê Aurora — service worker
    Deixa o app instalável e funcionando offline. */
 
-const VERSION = "poupae-aurora-v8";
+const VERSION = "poupae-aurora-v9";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

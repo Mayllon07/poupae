@@ -1164,6 +1164,7 @@ function renderGoals() {
 }
 
 function renderAccount() {
+  renderNotifStatus();
   if (!state.user) return;
   els.accountName.value = state.user.name;
   els.accountEmail.value = state.user.email;
@@ -1550,6 +1551,98 @@ function deleteAccount() {
   });
 }
 
+/* ── lembretes de depósito ───────────────────────────────── */
+/* Sem servidor não existe agendamento garantido na web: um site não
+   acorda sozinho. O que dá para fazer com honestidade é avisar quando
+   o app é aberto ou volta ao primeiro plano, e registrar periodicSync
+   onde o navegador oferecer. A interface diz isso em vez de prometer
+   um alarme que não vai tocar. */
+const NOTIF_KEY = "poupae:notif";
+const NOTIF_LAST = "poupae:notif:last";
+const notifSupported = "Notification" in window;
+
+function notifEnabled() {
+  return notifSupported && Notification.permission === "granted" && localStorage.getItem(NOTIF_KEY) === "on";
+}
+
+function renderNotifStatus() {
+  if (!els.notifStatus) return;
+  if (!notifSupported) {
+    els.notifStatus.textContent = "Este navegador não oferece notificações.";
+    els.notifBtn.classList.add("is-hidden");
+    return;
+  }
+  if (Notification.permission === "denied") {
+    els.notifStatus.textContent = "As notificações estão bloqueadas nas configurações do navegador para este site.";
+    els.notifBtn.classList.add("is-hidden");
+    return;
+  }
+  els.notifBtn.classList.remove("is-hidden");
+  if (notifEnabled()) {
+    els.notifStatus.textContent = "Lembretes ligados. O aviso aparece quando você abre o app e há depósito vencendo ou vencido — a web não permite alarme com o app fechado.";
+    els.notifBtn.textContent = "Desligar lembretes";
+  } else {
+    els.notifStatus.textContent = "Receba um aviso quando houver depósito vencendo, ao abrir o app.";
+    els.notifBtn.textContent = "Ativar lembretes de depósito";
+  }
+}
+
+async function toggleReminders() {
+  if (!notifSupported) return toast("Este navegador não oferece notificações.");
+  if (notifEnabled()) {
+    localStorage.setItem(NOTIF_KEY, "off");
+    renderNotifStatus();
+    return toast("Lembretes desligados.");
+  }
+  const permissao = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+  if (permissao !== "granted") {
+    renderNotifStatus();
+    return toast("Permissão de notificação negada.");
+  }
+  localStorage.setItem(NOTIF_KEY, "on");
+  renderNotifStatus();
+  toast("Lembretes ligados.");
+  checkReminders(true);
+
+  // onde existir, deixa o navegador reavaliar em segundo plano
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg && "periodicSync" in reg) {
+      await reg.periodicSync.register("poupae-lembrete", { minInterval: 24 * 60 * 60 * 1000 });
+    }
+  } catch { /* sem periodicSync: segue só com o aviso na abertura */ }
+}
+
+function dueDeposits(goal) {
+  if (!goal) return [];
+  const limite = endOfDay(todayISO()).getTime();
+  return goal.deposits.filter((d) => !d.paid && endOfDay(d.date).getTime() <= limite);
+}
+
+function checkReminders(forcar = false) {
+  if (!notifEnabled() || !state.goal) return;
+  // no máximo um aviso por dia, senão vira incômodo
+  if (!forcar && localStorage.getItem(NOTIF_LAST) === todayISO()) return;
+
+  const vencidos = dueDeposits(state.goal);
+  if (!vencidos.length) return;
+
+  const total = vencidos.reduce((s, d) => s + d.amount, 0);
+  const corpo = vencidos.length === 1
+    ? `Depósito ${vencidos[0].number} de ${currency.format(vencidos[0].amount)} venceu em ${fmtDate(vencidos[0].date)}.`
+    : `${vencidos.length} depósitos em aberto, somando ${currency.format(total)}.`;
+
+  try {
+    new Notification(state.goal.name, {
+      body: corpo,
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-192.png",
+      tag: "poupae-lembrete",
+    });
+    localStorage.setItem(NOTIF_LAST, todayISO());
+  } catch { /* alguns navegadores só permitem via service worker */ }
+}
+
 /* ── compartilhar progresso como imagem ──────────────────── */
 function drawShareCard(goal, st) {
   const S = 1080;
@@ -1867,6 +1960,12 @@ els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
 
 els.shareBtn.addEventListener("click", shareProgress);
+els.notifBtn.addEventListener("click", toggleReminders);
+
+// avisa ao voltar para o app, não só na carga inicial
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) checkReminders();
+});
 els.exportBtn.addEventListener("click", exportData);
 els.importBtn.addEventListener("click", () => els.importFile.click());
 els.importAuthBtn.addEventListener("click", () => els.importFile.click());
@@ -2134,4 +2233,5 @@ refreshInstallButton();
    ou aparelho lento o quadro não vem, e o app ficaria invisível. */
 document.body.classList.remove("is-booting");
 
+checkReminders();
 requestAnimationFrame(() => { moveGlider(); observeReveals(); });
