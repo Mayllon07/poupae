@@ -490,9 +490,14 @@ function render() {
   observeReveals();
 }
 
+const THEME_BAR = { dark: "#050d0a", light: "#eef5f0" };
+
 function applyTheme() {
   document.documentElement.dataset.theme = state.theme;
   document.body.dataset.mode = state.theme;
+  // instalado, a barra de status do sistema usa esta cor
+  const meta = $("#themeColor");
+  if (meta) meta.setAttribute("content", THEME_BAR[state.theme] || THEME_BAR.dark);
 }
 
 function renderAuth() {
@@ -1326,9 +1331,13 @@ els.recalcBtn.addEventListener("click", recalculate);
 els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
 
-els.avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); els.avatarMenu.classList.toggle("is-open"); });
-document.addEventListener("click", () => els.avatarMenu.classList.remove("is-open"));
-els.avatarMenu.addEventListener("click", (e) => e.stopPropagation());
+els.avatarBtn.addEventListener("click", () => els.avatarMenu.classList.toggle("is-open"));
+
+// fecha ao clicar fora. Não usar stopPropagation aqui dentro: isso impediria
+// o clique de chegar ao delegador de [data-screen] e "Minha conta" não abriria.
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".avatar-wrap")) els.avatarMenu.classList.remove("is-open");
+});
 
 document.addEventListener("click", (event) => {
   const nav = event.target.closest("[data-screen]");

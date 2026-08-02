@@ -3,8 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#050d0a" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#eef5f0" media="(prefers-color-scheme: light)" />
+    <!-- sem media: o JS sincroniza com o tema escolhido DENTRO do app.
+         Com media, a barra de status seguiria o tema do sistema e ficaria
+         escura mesmo com o app no modo claro. -->
+    <meta id="themeColor" name="theme-color" content="#050d0a" />
     <title>Poupaê Aurora — sua rota até a meta</title>
     <meta name="description" content="Transforme um valor distante numa rota de pequenos depósitos: plano calculado, marcos visuais e conquistas." />
 
