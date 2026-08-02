@@ -1291,6 +1291,18 @@ kbd {
 .account { padding: clamp(20px, 2.6vw, 30px); display: grid; gap: 13px; max-width: 620px; }
 .account-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 
+.backup {
+  padding: clamp(20px, 2.6vw, 30px);
+  display: grid;
+  gap: 14px;
+  max-width: 620px;
+  margin-top: 16px;
+}
+.backup h3 { margin-bottom: 5px; }
+.backup p { font-size: 0.85rem; line-height: 1.55; }
+.backup-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.backup-note:empty { display: none; }
+
 /* dock móvel */
 .dock {
   position: fixed;

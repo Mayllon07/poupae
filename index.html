@@ -118,7 +118,10 @@
             <span>Entrar</span>
           </button>
 
-          <p class="form-note">Conta local e criptografada no seu navegador.</p>
+          <p class="form-note">
+            Conta local no seu navegador.
+            <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
+          </p>
         </form>
       </section>
     </main>
@@ -517,6 +520,20 @@
                 <button id="deleteAccountBtn" class="btn btn-danger" type="button">Excluir conta</button>
               </div>
             </form>
+
+            <article class="backup glass">
+              <div>
+                <h3>Backup dos seus dados</h3>
+                <p class="muted">Suas metas vivem só neste navegador. Exporte um arquivo para guardar ou levar para outro aparelho.</p>
+              </div>
+              <div class="backup-actions">
+                <button id="exportBtn" class="btn btn-ghost" type="button">Exportar dados</button>
+                <button id="importBtn" class="btn btn-ghost" type="button">Importar dados</button>
+                <input id="importFile" type="file" accept="application/json,.json" hidden />
+              </div>
+              <p id="notifStatus" class="muted backup-note"></p>
+              <button id="notifBtn" class="btn btn-ghost" type="button">Ativar lembretes de depósito</button>
+            </article>
           </section>
         </div>
 

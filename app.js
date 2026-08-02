@@ -141,6 +141,12 @@ const els = {
   accountCurrentPassword: $("#accountCurrentPassword"),
   accountNewPassword: $("#accountNewPassword"),
   deleteAccountBtn: $("#deleteAccountBtn"),
+  exportBtn: $("#exportBtn"),
+  importBtn: $("#importBtn"),
+  importFile: $("#importFile"),
+  importAuthBtn: $("#importAuthBtn"),
+  notifBtn: $("#notifBtn"),
+  notifStatus: $("#notifStatus"),
 
   cmdPalette: $("#cmdPalette"),
   cmdInput: $("#cmdInput"),
@@ -1103,11 +1109,57 @@ function showScreen(screen) {
 }
 
 /* ── autenticação ────────────────────────────────────────── */
-const encode = (v) => {
+/* A senha era só Base64, que qualquer um reverte no console. Agora é
+   PBKDF2-SHA256 com salt próprio por conta. Contas antigas continuam
+   entrando pelo esquema velho e são migradas no primeiro login — sem
+   isso, quem já tinha conta ficaria trancado para fora. */
+const PBKDF2_ITERATIONS = 150000;
+// file:// não é contexto seguro e não tem subtle: ali o esquema antigo segue
+const subtle = window.crypto && window.crypto.subtle ? window.crypto.subtle : null;
+
+const bytesToB64 = (bytes) => btoa(String.fromCharCode(...bytes));
+const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+const legacyEncode = (v) => {
   try {
     return btoa(Array.from(new TextEncoder().encode(v), (b) => String.fromCharCode(b)).join(""));
   } catch { return v; }
 };
+
+async function derive(password, salt) {
+  const key = await subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    key,
+    256
+  );
+  return bytesToB64(new Uint8Array(bits));
+}
+
+async function hashPassword(password) {
+  if (!subtle) return { passwordHash: legacyEncode(password), passwordSalt: "" };
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return { passwordHash: await derive(password, salt), passwordSalt: bytesToB64(salt) };
+}
+
+async function verifyPassword(password, account) {
+  if (account.passwordSalt && subtle) {
+    try {
+      return (await derive(password, b64ToBytes(account.passwordSalt))) === account.passwordHash;
+    } catch {
+      return false;
+    }
+  }
+  return legacyEncode(password) === account.passwordHash;
+}
+
+/* migra a conta para o esquema novo assim que a senha certa é digitada */
+async function upgradeHashIfLegacy(account, password) {
+  if (account.passwordSalt || !subtle) return;
+  Object.assign(account, await hashPassword(password));
+  state.accounts[account.email] = account;
+  saveAccounts();
+}
 
 function setAuthMode(mode) {
   state.authMode = mode;
@@ -1118,7 +1170,7 @@ function setAuthMode(mode) {
   renderAuth();
 }
 
-function handleAuth(event) {
+async function handleAuth(event) {
   event.preventDefault();
   const email = els.authEmail.value.trim().toLowerCase();
   const password = els.authPassword.value;
@@ -1129,7 +1181,7 @@ function handleAuth(event) {
     if (state.accounts[email]) { setAuthMode("login"); els.authEmail.value = email; return toast("Já existe uma conta com este e-mail."); }
     if (password.length < 6) return toast("Use uma senha com pelo menos 6 caracteres.");
 
-    const account = { name, email, passwordHash: encode(password), createdAt: new Date().toISOString() };
+    const account = { name, email, ...(await hashPassword(password)), createdAt: new Date().toISOString() };
     state.accounts[email] = account;
     saveAccounts();
     signIn(account, "Conta criada. Bem-vindo ao Poupaê.");
@@ -1138,7 +1190,8 @@ function handleAuth(event) {
 
   const account = state.accounts[email];
   if (!account) { setAuthMode("register"); els.authEmail.value = email; return toast("Conta não encontrada. Crie uma neste dispositivo."); }
-  if (encode(password) !== account.passwordHash) return toast("E-mail ou senha incorretos.");
+  if (!(await verifyPassword(password, account))) return toast("E-mail ou senha incorretos.");
+  await upgradeHashIfLegacy(account, password);
   signIn(account, `Bom te ver de novo, ${account.name.split(" ")[0]}.`);
 }
 
@@ -1166,7 +1219,7 @@ function logout() {
   toast("Você saiu da conta.");
 }
 
-function updateAccount(event) {
+async function updateAccount(event) {
   event.preventDefault();
   const name = els.accountName.value.trim();
   const cur = els.accountCurrentPassword.value;
@@ -1177,9 +1230,9 @@ function updateAccount(event) {
   if (!account) { logout(); return toast("Conta não encontrada neste navegador."); }
 
   if (next) {
-    if (encode(cur) !== account.passwordHash) return toast("Digite a senha atual para trocar a senha.");
+    if (!(await verifyPassword(cur, account))) return toast("Digite a senha atual para trocar a senha.");
     if (next.length < 6) return toast("A nova senha precisa ter ao menos 6 caracteres.");
-    account.passwordHash = encode(next);
+    Object.assign(account, await hashPassword(next));
   }
   account.name = name;
   state.accounts[state.user.email] = account;
@@ -1198,6 +1251,110 @@ function deleteAccount() {
   localStorage.removeItem(activeKey(email));
   logout();
   toast("Conta excluída deste dispositivo.");
+}
+
+/* ── backup: exportar e importar ─────────────────────────── */
+/* O arquivo leva a conta (com o hash, nunca a senha em claro) e as
+   metas. Assim, restaurar num aparelho novo devolve o login e os dados
+   de uma vez — sem isso, os dados morrem presos a um navegador. */
+const BACKUP_MARKER = "poupae-aurora";
+
+function exportData() {
+  const payload = {
+    app: BACKUP_MARKER,
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    account: { ...state.accounts[state.user.email] },
+    goals: state.goals,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `poupae-backup-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Backup exportado. Guarde o arquivo em lugar seguro.");
+}
+
+function sanitizeDeposit(d, i) {
+  return {
+    id: String(d?.id || `${i + 1}-${createId()}`),
+    number: Number(d?.number) || i + 1,
+    date: String(d?.date || todayISO()).slice(0, 10),
+    amount: money(d?.amount) || 0,
+    paid: Boolean(d?.paid),
+    paidAt: d?.paid ? String(d?.paidAt || "") : "",
+    paidAmount: d?.paid ? money(d?.paidAmount) || 0 : 0,
+  };
+}
+
+function sanitizeGoal(g) {
+  if (!g || typeof g !== "object" || !Array.isArray(g.deposits)) return null;
+  const target = money(g.targetAmount);
+  if (!target || target <= 0) return null;
+  return {
+    id: String(g.id || createId()),
+    createdAt: String(g.createdAt || new Date().toISOString()),
+    name: String(g.name || "Meta importada"),
+    targetAmount: target,
+    currentAmount: Math.max(0, money(g.currentAmount) || 0),
+    deadline: String(g.deadline || todayISO()).slice(0, 10),
+    frequency: ["daily", "weekly", "monthly"].includes(g.frequency) ? g.frequency : "weekly",
+    strategy: ["fixed", "progressive", "flexible"].includes(g.strategy) ? g.strategy : "fixed",
+    monthlyCapacity: Math.max(0, money(g.monthlyCapacity) || 0),
+    reason: REASONS[g.reason] ? g.reason : "reserva",
+    history: Array.isArray(g.history) ? g.history : [],
+    deposits: g.deposits.map(sanitizeDeposit),
+  };
+}
+
+function importPayload(payload) {
+  if (!payload || payload.app !== BACKUP_MARKER || !payload.account?.email || !Array.isArray(payload.goals)) {
+    throw new Error("Esse arquivo não parece um backup do Poupaê.");
+  }
+  const email = String(payload.account.email).toLowerCase();
+  const goals = payload.goals.map(sanitizeGoal).filter(Boolean);
+
+  // conta: só cria se não existir — nunca sobrescreve a senha local
+  if (!state.accounts[email]) {
+    state.accounts[email] = {
+      name: String(payload.account.name || email),
+      email,
+      passwordHash: String(payload.account.passwordHash || ""),
+      passwordSalt: String(payload.account.passwordSalt || ""),
+      createdAt: payload.account.createdAt || new Date().toISOString(),
+    };
+    saveAccounts();
+  }
+
+  // metas: mescla por id — as do arquivo prevalecem
+  const existing = loadGoals(email);
+  const byId = new Map(existing.map((g) => [g.id, g]));
+  goals.forEach((g) => byId.set(g.id, g));
+  localStorage.setItem(goalsKey(email), JSON.stringify([...byId.values()]));
+
+  return { email, count: goals.length };
+}
+
+function handleImportFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const res = importPayload(JSON.parse(reader.result));
+      if (state.authed && state.user.email === res.email) {
+        state.goals = loadGoals(res.email);
+        state.goal = pickActiveGoal(state.goals, res.email);
+        render();
+      }
+      toast(state.authed
+        ? `Backup importado: ${res.count} meta${res.count === 1 ? "" : "s"}.`
+        : "Backup restaurado. Entre com seu e-mail e senha.");
+    } catch (e) {
+      toast(e.message || "Não foi possível ler esse arquivo.");
+    }
+  };
+  reader.readAsText(file);
 }
 
 /* ── paleta de comandos ──────────────────────────────────── */
@@ -1306,6 +1463,15 @@ els.payBtn.addEventListener("click", payNext);
 els.recalcBtn.addEventListener("click", recalculate);
 els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
+
+els.exportBtn.addEventListener("click", exportData);
+els.importBtn.addEventListener("click", () => els.importFile.click());
+els.importAuthBtn.addEventListener("click", () => els.importFile.click());
+els.importFile.addEventListener("change", () => {
+  const file = els.importFile.files[0];
+  if (file) handleImportFile(file);
+  els.importFile.value = "";
+});
 
 els.avatarBtn.addEventListener("click", () => els.avatarMenu.classList.toggle("is-open"));
 
