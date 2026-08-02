@@ -39,6 +39,11 @@
     <div class="bg-grain" aria-hidden="true"></div>
     <div id="spotlight" class="bg-spot" aria-hidden="true"></div>
 
+    <!-- Tudo que rola vive aqui dentro. A rolagem sai do documento
+         porque a barra do documento, no Android, é desenhada pelo
+         navegador e nenhum estilo a alcança. -->
+    <div id="scroller">
+
     <!-- ══ AUTENTICAÇÃO ═══════════════════════════════════ -->
     <main id="authView" class="auth">
       <section class="auth-hero reveal">
@@ -535,6 +540,8 @@
         </nav>
       </div>
     </div>
+
+    </div><!-- /#scroller -->
 
     <!-- ══ SOBREPOSIÇÕES ══════════════════════════════════ -->
     <div id="cmdPalette" class="cmd is-hidden" role="dialog" aria-modal="true" aria-label="Paleta de comandos">

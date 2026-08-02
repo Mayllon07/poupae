@@ -99,13 +99,31 @@ html {
   }
 }
 
-/* ── barra de rolagem oculta (a rolagem continua normal) ─ */
+/* ── barra de rolagem oculta (a rolagem continua normal) ─
+   A barra do documento, no Android, é desenhada pelo navegador como
+   sobreposição e nenhum estilo a alcança. Por isso a rolagem passa
+   para #scroller, que é 30px mais largo que a tela: a barra cai nesse
+   pedaço, que o body corta fora. Funciona por geometria, sem depender
+   de o navegador suportar scrollbar-width. */
 html, body {
-  scrollbar-width: none;      /* Firefox */
-  -ms-overflow-style: none;   /* Edge antigo */
+  height: 100%;
+  overflow: hidden;
 }
-html::-webkit-scrollbar,
-body::-webkit-scrollbar { display: none; }
+
+#scroller {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-right: -30px;
+  padding-right: 30px;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+
+  /* onde o navegador aceita, esconde direto */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#scroller::-webkit-scrollbar { display: none; }
 
 .route-scroll,
 .table-scroll,

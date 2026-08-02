@@ -147,6 +147,7 @@ const els = {
   cmdList: $("#cmdList"),
   cmdOpen: $("#cmdOpen"),
 
+  scroller: $("#scroller"),
   toast: $("#toast"),
   confetti: $("#confetti"),
   field: $("#fieldCanvas"),
@@ -1098,7 +1099,7 @@ function showScreen(screen) {
   if (screen !== "dashboard") state.editing = false;
   els.avatarMenu.classList.remove("is-open");
   render();
-  window.scrollTo({ top: 0, behavior: motionOff ? "auto" : "smooth" });
+  els.scroller.scrollTo({ top: 0, behavior: motionOff ? "auto" : "smooth" });
 }
 
 /* ── autenticação ────────────────────────────────────────── */
@@ -1368,10 +1369,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Enter") { event.preventDefault(); runCmd(); }
 });
 
-/* topo que recolhe ao rolar */
-let lastY = window.scrollY;
-addEventListener("scroll", () => {
-  const y = window.scrollY;
+/* topo que recolhe ao rolar — quem rola agora é #scroller, não a janela */
+let lastY = 0;
+els.scroller.addEventListener("scroll", () => {
+  const y = els.scroller.scrollTop;
   els.topbar.classList.toggle("is-tucked", y > lastY && y > 90);
   lastY = y;
 }, { passive: true });
