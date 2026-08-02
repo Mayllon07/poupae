@@ -11,6 +11,7 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 const dateLong = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 const dateShort = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
+const dateTime = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
 const motionOff = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -24,6 +25,8 @@ const AWARDS = [
   { key: "p50", icon: "50", label: "Metade feita", target: 50, type: "percent", text: "Alcance 50% da sua meta." },
   { key: "p75", icon: "75", label: "Reta final", target: 75, type: "percent", text: "Passe de 75% concluído." },
   { key: "p100", icon: "100", label: "Meta conquistada", target: 100, type: "percent", text: "Complete toda a jornada." },
+  { key: "s5", icon: "5×", label: "Cinco em dia", target: 5, type: "streak", text: "Pague 5 depósitos seguidos no prazo." },
+  { key: "s12", icon: "12×", label: "Disciplina firme", target: 12, type: "streak", text: "Chegue a 12 seguidos sem atrasar." },
 ];
 
 const REASONS = {
@@ -128,6 +131,9 @@ const els = {
   chartTip: $("#chartTip"),
   planTable: $("#planTable"),
   planDetails: $("#planDetails"),
+  streakPill: $("#streakPill"),
+  analyticsBody: $("#analyticsBody"),
+  historyList: $("#historyList"),
 
   depositSearch: $("#depositSearch"),
   depositFilter: $("#depositFilter"),
@@ -152,6 +158,13 @@ const els = {
   cmdInput: $("#cmdInput"),
   cmdList: $("#cmdList"),
   cmdOpen: $("#cmdOpen"),
+
+  depEdit: $("#depEdit"),
+  depEditSub: $("#depEditSub"),
+  depEditAmount: $("#depEditAmount"),
+  depEditDate: $("#depEditDate"),
+  depEditSave: $("#depEditSave"),
+  depEditCancel: $("#depEditCancel"),
 
   scroller: $("#scroller"),
   toast: $("#toast"),
@@ -232,7 +245,16 @@ const state = {
 
 /* ── utilidades de domínio ───────────────────────────────── */
 const money = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
-const parseMoney = (v) => (!v ? 0 : Number(String(v).replace(/\./g, "").replace(",", ".")) || 0);
+/* <input type="number"> sempre entrega ponto como separador decimal,
+   qualquer que seja o idioma. Tratar o ponto como milhar fazia
+   1500.50 virar 150050 — cem vezes o valor pedido. Só interpreta como
+   pt-BR quando há vírgula, que é o único caso em que o ponto é milhar. */
+const parseMoney = (v) => {
+  if (v === null || v === undefined || v === "") return 0;
+  const s = String(v).trim();
+  const normalized = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+  return Number(normalized) || 0;
+};
 const toISO = (d) => d.toISOString().slice(0, 10);
 const todayISO = () => toISO(new Date());
 const createId = () => (crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -278,6 +300,11 @@ function createPlan(data) {
     id: createId(),
     createdAt: new Date().toISOString(),
     ...data,
+    history: [{
+      at: new Date().toISOString(),
+      type: "created",
+      text: `Meta criada: ${currency.format(data.targetAmount)} até ${fmtDate(data.deadline)}, em ${periods} depósitos ${freqPlural(data.frequency)}.`,
+    }],
     deposits: amounts.map((amount, i) => ({
       id: `${i + 1}-${createId()}`,
       number: i + 1,
@@ -325,6 +352,52 @@ function healthOf(goal) {
   if (!cap) return { label: "Plano criado", tone: "neutral", title: "Você já tem uma rota clara", text: `A média é de ${currency.format(need)} por mês. Ajuste a frequência se quiser mais folga.` };
   if (need <= cap) return { label: "Confortável", tone: "good", title: "Seu plano cabe no perfil informado", text: `Você informou ${currency.format(cap)} por mês e o plano pede cerca de ${currency.format(need)}.` };
   return { label: "Apertado", tone: "warn", title: "Seu prazo exige atenção", text: `O plano pede cerca de ${currency.format(need)} por mês, acima dos ${currency.format(cap)} informados. Ampliar o prazo ajuda.` };
+}
+
+/* ── consistência e leitura de comportamento ─────────────── */
+/* "no prazo" é até o fim do dia previsto, não o instante da data */
+const endOfDay = (iso) => new Date(`${String(iso).slice(0, 10)}T23:59:59`);
+const paidOnTime = (d) => Boolean(d.paid && d.paidAt && new Date(d.paidAt) <= endOfDay(d.date));
+
+function streakOf(goal) {
+  if (!goal) return { current: 0, best: 0, onTime: 0, late: 0 };
+  let run = 0, best = 0, onTime = 0, late = 0;
+  for (const d of goal.deposits) {
+    if (!d.paid) break; // a sequência para no primeiro pendente
+    if (paidOnTime(d)) {
+      run += 1;
+      onTime += 1;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+      late += 1;
+    }
+  }
+  return { current: run, best, onTime, late };
+}
+
+function analyticsOf(goal) {
+  const paid = goal ? goal.deposits.filter((d) => d.paid && d.paidAt) : [];
+  if (!paid.length) return null;
+  const dias = paid.map((d) => (endOfDay(d.date) - new Date(d.paidAt)) / 86400000);
+  const media = dias.reduce((a, b) => a + b, 0) / dias.length;
+  const planejado = paid.reduce((s, d) => s + d.amount, 0) / paid.length;
+  const realizado = paid.reduce((s, d) => s + (d.paidAmount || d.amount), 0) / paid.length;
+  return {
+    total: paid.length,
+    antecedencia: media, // positivo = adiantado
+    planejado: money(planejado),
+    realizado: money(realizado),
+    ...streakOf(goal),
+  };
+}
+
+/* ── histórico da meta ───────────────────────────────────── */
+function logHistory(goal, type, text) {
+  if (!goal) return;
+  if (!Array.isArray(goal.history)) goal.history = [];
+  goal.history.unshift({ at: new Date().toISOString(), type, text });
+  goal.history = goal.history.slice(0, 40);
 }
 
 /* ── motor de animação ───────────────────────────────────── */
@@ -565,11 +638,16 @@ function renderDashboard() {
   els.goalTitle.textContent = goal.name;
   els.goalSubtitle.textContent = `Plano ${stratLabel(goal.strategy)} com frequência ${freqLabel(goal.frequency)} para ${REASONS[goal.reason] || "sua meta"}.`;
 
-  els.heroChips.innerHTML = [
+  const streak = streakOf(goal);
+  const chips = [
     `Meta ${currency.format(goal.targetAmount)}`,
     `${goal.deposits.length} depósitos`,
     `Até ${fmtDate(goal.deadline)}`,
-  ].map((t) => `<span class="pill">${t}</span>`).join("");
+  ].map((t) => `<span class="pill">${t}</span>`);
+  if (streak.current >= 2) {
+    chips.unshift(`<span class="pill pill-streak">${streak.current} seguidos no prazo</span>`);
+  }
+  els.heroChips.innerHTML = chips.join("");
 
   const circ = 2 * Math.PI * 84;
   els.ringValue.style.strokeDashoffset = String(circ * (1 - st.percent / 100));
@@ -710,6 +788,63 @@ function renderPlan() {
         <p>${it.text}</p>
       </article>`)
     .join("");
+
+  renderAnalytics();
+  renderHistory();
+}
+
+const HISTORY_LABEL = { created: "Criada", edited: "Editada", recalculated: "Recalculada", deposit: "Depósito" };
+
+function renderAnalytics() {
+  const a = analyticsOf(state.goal);
+  els.streakPill.textContent = a && a.current ? `${a.current} seguidos no prazo` : "Sem sequência";
+
+  if (!a) {
+    els.analyticsBody.innerHTML = `<p class="muted">Conclua o primeiro depósito para o Poupaê começar a ler seu ritmo.</p>`;
+    return;
+  }
+
+  const dias = Math.round(Math.abs(a.antecedencia));
+  const ritmo = Math.abs(a.antecedencia) < 0.5
+    ? "Em cima do prazo"
+    : `${dias} dia${dias === 1 ? "" : "s"} ${a.antecedencia > 0 ? "adiantado" : "atrasado"}`;
+  const dif = money(a.realizado - a.planejado);
+
+  const items = [
+    { label: "Depósitos feitos", value: String(a.total), text: `${a.onTime} no prazo, ${a.late} com atraso.` },
+    { label: "Ritmo médio", value: ritmo, text: "Distância entre a data prevista e o pagamento." },
+    { label: "Melhor sequência", value: String(a.best), text: a.current ? `Sequência atual: ${a.current}.` : "Um atraso zera a sequência." },
+    {
+      label: "Valor médio pago",
+      value: currency.format(a.realizado),
+      text: dif === 0 ? "Igual ao planejado."
+        : dif > 0 ? `${currency.format(dif)} acima do planejado.`
+        : `${currency.format(-dif)} abaixo do planejado.`,
+    },
+  ];
+
+  els.analyticsBody.innerHTML = items.map((it) => `
+    <div class="analytics-item">
+      <span>${it.label}</span>
+      <strong>${it.value}</strong>
+      <p>${it.text}</p>
+    </div>`).join("");
+}
+
+function renderHistory() {
+  const h = Array.isArray(state.goal?.history) ? state.goal.history : [];
+  if (!h.length) {
+    els.historyList.innerHTML = `<li class="history-empty muted">Nenhuma alteração registrada ainda.</li>`;
+    return;
+  }
+  els.historyList.innerHTML = h.map((e) => `
+    <li>
+      <span class="history-tag ${e.type}">${HISTORY_LABEL[e.type] || "Mudança"}</span>
+      <div>
+        <p>${e.text}</p>
+        <small>${dateTime.format(new Date(e.at))}</small>
+      </div>
+    </li>`).join("");
 }
 
 let chartPoints = [];
@@ -874,6 +1009,7 @@ function renderDeposits() {
       </div>
       <div class="dep-side">
         <span class="status ${d.paid ? "paid" : "pending"}">${d.paid ? "Concluído" : "Pendente"}</span>
+        <button class="mini-btn" data-dep-edit="${d.id}" type="button">Editar</button>
         <button class="mini-btn" data-dep="${d.id}" type="button">${d.paid ? "Desfazer" : "Pagar"}</button>
       </div>
     </article>`).join("");
@@ -882,9 +1018,12 @@ function renderDeposits() {
 /* conquistas */
 function renderAwards() {
   const st = statsOf(state.goal);
+  const streak = streakOf(state.goal);
   let done = 0;
   els.awardsList.innerHTML = AWARDS.map((a, i) => {
-    const ok = a.type === "percent" ? st.percent >= a.target : st.paid.length >= a.target;
+    const ok = a.type === "percent" ? st.percent >= a.target
+      : a.type === "streak" ? streak.best >= a.target
+      : st.paid.length >= a.target;
     if (ok) done += 1;
     return `
       <article class="award ${ok ? "is-done" : ""}" style="animation-delay:${i * 70}ms">
@@ -1060,6 +1199,54 @@ function toggleDeposit(id, custom = null) {
   render();
 }
 
+/* edição de um depósito, sem mexer no resto do plano */
+let editingDepositId = null;
+
+function openDepositEditor(id) {
+  const d = state.goal?.deposits.find((x) => x.id === id);
+  if (!d) return;
+  editingDepositId = id;
+  els.depEditSub.textContent = `Depósito ${d.number} de ${state.goal.deposits.length}${d.paid ? " · já concluído" : ""}`;
+  els.depEditAmount.value = d.paid ? d.paidAmount || d.amount : d.amount;
+  els.depEditDate.value = String(d.date).slice(0, 10);
+  els.depEdit.classList.remove("is-hidden");
+  els.depEditAmount.focus();
+}
+
+const closeDepositEditor = () => {
+  els.depEdit.classList.add("is-hidden");
+  editingDepositId = null;
+};
+
+function saveDepositEdit() {
+  const d = state.goal?.deposits.find((x) => x.id === editingDepositId);
+  if (!d) return closeDepositEditor();
+
+  const valor = parseMoney(els.depEditAmount.value);
+  const data = els.depEditDate.value;
+  if (!valor || valor <= 0) return toast("Informe um valor maior que zero.");
+  if (!data) return toast("Informe a data do depósito.");
+
+  const antes = { amount: d.paid ? d.paidAmount || d.amount : d.amount, date: d.date };
+  d.amount = money(valor);
+  if (d.paid) d.paidAmount = money(valor);
+  d.date = data;
+
+  const mudou = [];
+  if (antes.amount !== money(valor)) mudou.push(`valor ${currency.format(antes.amount)} → ${currency.format(valor)}`);
+  if (antes.date !== data) mudou.push(`data ${fmtDate(antes.date)} → ${fmtDate(data)}`);
+  if (mudou.length) logHistory(state.goal, "deposit", `Depósito ${d.number}: ${mudou.join(", ")}.`);
+
+  // reordena: mudar a data pode tirar o depósito de sequência
+  state.goal.deposits.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  state.goal.deposits.forEach((x, i) => { x.number = i + 1; });
+
+  saveCurrentGoal();
+  closeDepositEditor();
+  render();
+  toast(mudou.length ? "Depósito atualizado." : "Nada mudou nesse depósito.");
+}
+
 function payNext() {
   const next = state.goal?.deposits.find((d) => !d.paid);
   if (!next) return;
@@ -1073,6 +1260,7 @@ function recalculate() {
   if (!pending.length) { toast("Sua meta já está completa."); return; }
   const amounts = buildAmounts(st.remaining, pending.length, state.goal.strategy);
   pending.forEach((d, i) => { d.amount = amounts[i]; });
+  logHistory(state.goal, "recalculated", `Plano recalculado: ${currency.format(st.remaining)} redistribuídos em ${pending.length} depósitos restantes.`);
   saveCurrentGoal();
   render();
   toast("Plano recalculado com base no progresso atual.");
@@ -1425,9 +1613,15 @@ els.goalForm.addEventListener("submit", (event) => {
   }
   if (!data.deadline) { goToStep(2); return toast("Escolha a data limite da meta."); }
 
-  const previousId = wasEditing ? state.goal?.id : null;
+  const previous = wasEditing ? state.goal : null;
   state.goal = createPlan(data);
-  if (previousId) state.goal.id = previousId;
+  if (previous) {
+    // editar recalcula o plano, mas a identidade e o rastro continuam
+    state.goal.id = previous.id;
+    state.goal.createdAt = previous.createdAt;
+    state.goal.history = Array.isArray(previous.history) ? previous.history : [];
+    logHistory(state.goal, "edited", `Meta ajustada para ${currency.format(data.targetAmount)} até ${fmtDate(data.deadline)}. Plano recalculado em ${state.goal.deposits.length} depósitos.`);
+  }
   state.editing = false;
   state.screen = "dashboard";
   saveCurrentGoal();
@@ -1488,6 +1682,8 @@ document.addEventListener("click", (event) => {
   if (open) return openGoal(open.dataset.open);
   const del = event.target.closest("[data-del]");
   if (del) return deleteGoal(del.dataset.del);
+  const depEdit = event.target.closest("[data-dep-edit]");
+  if (depEdit) return openDepositEditor(depEdit.dataset.depEdit);
   const dep = event.target.closest("[data-dep]");
   if (dep) return toggleDeposit(dep.dataset.dep);
   if (event.target.closest("[data-new-goal]")) return startNewGoal();
@@ -1508,6 +1704,10 @@ els.depositFilter.addEventListener("click", (event) => {
 els.planChart.addEventListener("pointermove", chartHover);
 els.planChart.addEventListener("pointerleave", chartLeave);
 
+els.depEditSave.addEventListener("click", saveDepositEdit);
+els.depEditCancel.addEventListener("click", closeDepositEditor);
+els.depEdit.addEventListener("click", (e) => { if (e.target === els.depEdit) closeDepositEditor(); });
+
 els.cmdOpen.addEventListener("click", openCmd);
 els.cmdInput.addEventListener("input", () => { cmdIndex = 0; renderCmd(); });
 els.cmdList.addEventListener("click", (e) => {
@@ -1526,6 +1726,10 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Escape" && !$("#installHelp").classList.contains("is-hidden")) {
     closeInstallHelp();
+    return;
+  }
+  if (event.key === "Escape" && !els.depEdit.classList.contains("is-hidden")) {
+    closeDepositEditor();
     return;
   }
   if (els.cmdPalette.classList.contains("is-hidden")) return;
