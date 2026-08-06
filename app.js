@@ -75,19 +75,22 @@ const els = {
   screens: $("#screens"),
   greeting: $("#greeting"),
   goalTitle: $("#goalTitle"),
-  goalSubtitle: $("#goalSubtitle"),
-  heroChips: $("#heroChips"),
-  ringValue: $("#ringValue"),
-  ringPercent: $("#ringPercent"),
-
+  kpiTarget: $("#kpiTarget"),
   kpiSaved: $("#kpiSaved"),
-  kpiSavedBar: $("#kpiSavedBar"),
   kpiRemaining: $("#kpiRemaining"),
-  kpiRemainingHint: $("#kpiRemainingHint"),
   kpiNext: $("#kpiNext"),
   kpiNextHint: $("#kpiNextHint"),
   kpiDays: $("#kpiDays"),
   kpiDaysHint: $("#kpiDaysHint"),
+  ovSaved: $("#ovSaved"),
+  ovRemaining: $("#ovRemaining"),
+
+  bucketRows: $("#bucketRows"),
+  bucketTotal: $("#bucketTotal"),
+  miniChart: $("#miniChart"),
+  prevGoalBtn: $("#prevGoalBtn"),
+  nextGoalBtn: $("#nextGoalBtn"),
+  goPlanBtn: $("#goPlanBtn"),
 
   routePill: $("#routePill"),
   routeSvg: $("#routeSvg"),
@@ -158,7 +161,6 @@ const els = {
   confirmOk: $("#confirmOk"),
   confirmCancel: $("#confirmCancel"),
   confetti: $("#confetti"),
-  field: $("#fieldCanvas"),
   spotlight: $("#spotlight"),
 };
 
@@ -298,65 +300,6 @@ const revealer = new IntersectionObserver(
 );
 const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el));
 
-/* campo de partículas */
-(function particleField() {
-  if (motionOff) return;
-  const cvs = els.field;
-  const ctx = cvs.getContext("2d");
-  let w, h, dots = [];
-
-  const resize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    w = cvs.width = innerWidth * dpr;
-    h = cvs.height = innerHeight * dpr;
-    cvs.style.width = `${innerWidth}px`;
-    cvs.style.height = `${innerHeight}px`;
-    const count = Math.round((innerWidth * innerHeight) / 26000);
-    dots = Array.from({ length: count }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: (Math.random() * 1.7 + 0.4) * dpr,
-      s: (Math.random() * 0.24 + 0.06) * dpr,
-      a: Math.random() * Math.PI * 2,
-      o: Math.random() * 0.45 + 0.12,
-    }));
-  };
-
-  const tick = () => {
-    ctx.clearRect(0, 0, w, h);
-    for (const d of dots) {
-      d.y -= d.s;
-      d.a += 0.008;
-      d.x += Math.sin(d.a) * 0.22;
-      if (d.y < -6) { d.y = h + 6; d.x = Math.random() * w; }
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(150,255,214,${d.o})`;
-      ctx.fill();
-    }
-    requestAnimationFrame(tick);
-  };
-
-  resize();
-  addEventListener("resize", resize);
-  requestAnimationFrame(tick);
-})();
-
-/* luz que segue o cursor */
-(function spotlight() {
-  if (motionOff) return;
-  let tx = innerWidth / 2, ty = innerHeight * 0.3, cx = tx, cy = ty;
-  addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; }, { passive: true });
-  const loop = () => {
-    cx += (tx - cx) * 0.07;
-    cy += (ty - cy) * 0.07;
-    els.spotlight.style.setProperty("--mx", `${cx}px`);
-    els.spotlight.style.setProperty("--my", `${cy}px`);
-    requestAnimationFrame(loop);
-  };
-  loop();
-})();
-
 /* confete */
 function burstConfetti() {
   if (motionOff) return;
@@ -470,6 +413,7 @@ function render() {
   if (!state.goal) return;
   renderDashboard();
   renderRoute();
+  renderMiniChart();
   renderPlan();
   renderDeposits();
   renderAwards();
@@ -545,34 +489,31 @@ function renderDashboard() {
   const hour = new Date().getHours();
   const part = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
-  els.greeting.textContent = `${part}, ${(state.user?.name || "").split(" ")[0]}`;
-  els.goalTitle.textContent = goal.name;
-  els.goalSubtitle.textContent = `Plano ${stratLabel(goal.strategy)} com frequência ${freqLabel(goal.frequency)} para ${REASONS[goal.reason] || "sua meta"}.`;
-
   const streak = streakOf(goal);
-  const chips = [
-    `Meta ${currency.format(goal.targetAmount)}`,
-    `${goal.deposits.length} depósitos`,
-    `Até ${fmtDate(goal.deadline)}`,
-  ].map((t) => `<span class="pill">${t}</span>`);
-  if (streak.current >= 2) {
-    chips.unshift(`<span class="pill pill-streak">${streak.current} seguidos no prazo</span>`);
-  }
-  els.heroChips.innerHTML = chips.join("");
+  els.goalTitle.textContent = goal.name;
+  els.greeting.textContent = streak.current >= 2
+    ? `${part}, ${(state.user?.name || "").split(" ")[0]} · ${streak.current} seguidos no prazo`
+    : `${part}, ${(state.user?.name || "").split(" ")[0]}`;
 
-  const circ = 2 * Math.PI * 84;
-  els.ringValue.style.strokeDashoffset = String(circ * (1 - st.percent / 100));
-  countTo(els.ringPercent, st.percent, (v) => `${v.toFixed(0)}%`);
+  // as duas setas só fazem sentido com mais de uma meta
+  const varias = state.goals.length > 1;
+  els.prevGoalBtn.classList.toggle("is-hidden", !varias);
+  els.nextGoalBtn.classList.toggle("is-hidden", !varias);
 
+  els.kpiTarget.textContent = currency.format(goal.targetAmount);
   countTo(els.kpiSaved, st.saved);
-  els.kpiSavedBar.style.width = `${st.percent}%`;
   countTo(els.kpiRemaining, st.remaining);
-  els.kpiRemainingHint.textContent = `${(100 - st.percent).toFixed(0)}% do caminho`;
+  els.ovSaved.textContent = currency.format(st.saved);
+  els.ovRemaining.textContent = currency.format(st.remaining);
 
   countTo(els.kpiNext, st.next ? st.next.amount : 0);
-  els.kpiNextHint.textContent = st.next ? fmtDate(st.next.date) : "Tudo concluído";
+  els.kpiNextHint.textContent = st.next
+    ? `${endOfDay(st.next.date) < new Date() ? "venceu" : "vence"} em ${fmtDate(st.next.date)}`
+    : "tudo concluído";
   els.kpiDays.textContent = st.days === 1 ? "1 dia" : `${st.days} dias`;
-  els.kpiDaysHint.textContent = `Até ${fmtDate(goal.deadline)}`;
+  els.kpiDaysHint.textContent = `${goal.deposits.length - st.paid.length} depósitos restantes`;
+
+  renderBuckets(goal);
 
   if (st.next) {
     els.actionTitle.textContent = `Depósito ${st.next.number} de ${goal.deposits.length}`;
@@ -594,79 +535,75 @@ function renderDashboard() {
   els.insightText.textContent = h.text;
 }
 
-/* rota com marcos */
+/* situação dos depósitos — as quatro faixas, no espírito da
+   "discriminação" de um app de contas */
+function renderBuckets(goal) {
+  const b = depositBuckets(goal);
+  const linhas = [
+    { k: "concluidos", tom: "ok", rotulo: "Concluídos", filtro: "paid" },
+    { k: "proximos", tom: "warn", rotulo: "Próximo do vencimento", filtro: "pending" },
+    { k: "vencidos", tom: "bad", rotulo: "Vencidos", filtro: "pending" },
+    { k: "futuros", tom: "mute", rotulo: "A vencer", filtro: "pending" },
+  ];
+
+  els.bucketRows.innerHTML = linhas
+    .map(({ k, tom, rotulo, filtro }) => `
+      <li class="row" data-bucket="${filtro}">
+        <span class="pct ${tom}">${b[k].percent}%</span>
+        <span class="row-label">${rotulo}<small>${b[k].count} ${b[k].count === 1 ? "depósito" : "depósitos"}</small></span>
+        <span class="row-val">${currency.format(b[k].total)}</span>
+        <svg class="row-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+      </li>`)
+    .join("");
+
+  els.bucketTotal.textContent = currency.format(goal.targetAmount);
+}
+
+/* faixa de marcos: bolinhas numa linha reta, como a régua de dias da
+   referência. Substitui a curva sinuosa do desenho antigo. */
 function renderRoute() {
   const goal = state.goal;
   const deps = goal.deposits;
   const st = statsOf(goal);
   els.routePill.textContent = `${st.paid.length} de ${deps.length}`;
 
-  const maxNodes = 13;
-  const idx = deps.length <= maxNodes
-    ? deps.map((_, i) => i)
-    : Array.from({ length: maxNodes }, (_, i) => Math.round((i * (deps.length - 1)) / (maxNodes - 1)));
+  /* Amostragem uniforme perderia justamente o próximo depósito, que é o
+     ponto que a pessoa procura. Ele entra sempre, trocando o vizinho. */
+  const maxNodes = 7;
+  let idx;
+  if (deps.length <= maxNodes) {
+    idx = deps.map((_, i) => i);
+  } else {
+    idx = Array.from({ length: maxNodes }, (_, i) => Math.round((i * (deps.length - 1)) / (maxNodes - 1)));
+    const alvo = st.next ? deps.indexOf(st.next) : -1;
+    if (alvo >= 0 && !idx.includes(alvo)) {
+      let maisPerto = 0;
+      idx.forEach((v, i) => { if (Math.abs(v - alvo) < Math.abs(idx[maisPerto] - alvo)) maisPerto = i; });
+      idx[maisPerto] = alvo;
+      idx.sort((a, b) => a - b);
+    }
+  }
 
-  const W = 900, H = 190, padX = 42;
-  const pts = idx.map((di, i) => {
-    const t = idx.length === 1 ? 0.5 : i / (idx.length - 1);
-    return {
-      x: padX + t * (W - padX * 2),
-      y: 104 - Math.sin(t * Math.PI * 1.6) * 42,
-      dep: deps[di],
-      i,
-    };
+  const W = 320, H = 44, padX = 14, y = 13;
+  const hoje = new Date();
+  const passo = idx.length > 1 ? (W - padX * 2) / (idx.length - 1) : 0;
+
+  const nodes = idx.map((di, i) => {
+    const d = deps[di];
+    const x = padX + i * passo;
+    const venc = endOfDay(d.date);
+    const cls = d.paid ? "done" : venc < hoje ? "late" : d.id === st.next?.id ? "next" : "todo";
+    const r = cls === "next" ? 5.5 : 4.5;
+    return `<circle class="tk-node ${cls}" cx="${x.toFixed(1)}" cy="${y}" r="${r}"><title>Depósito ${d.number} — ${currency.format(d.amount)}</title></circle>
+            <text class="tk-label" x="${x.toFixed(1)}" y="${y + 20}">${dateShort.format(new Date(`${d.date}T12:00:00`))}</text>`;
   });
 
-  const smooth = (points) => {
-    if (points.length < 2) return "";
-    let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i - 1] || points[i];
-      const p1 = points[i];
-      const p2 = points[i + 1];
-      const p3 = points[i + 2] || p2;
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-    }
-    return d;
-  };
-
-  let lastDone = -1;
-  pts.forEach((p, i) => { if (p.dep.paid) lastDone = i; });
-  const donePath = lastDone > 0 ? smooth(pts.slice(0, lastDone + 1)) : "";
-
-  const nodes = pts.map((p) => {
-    const done = p.dep.paid;
-    const isNext = !done && p.dep.id === st.next?.id;
-    const cls = done ? "route-node done" : isNext ? "route-node next" : "route-node";
-    const r = isNext ? 9 : done ? 7.5 : 6;
-    const label = dateShort.format(new Date(`${p.dep.date}T12:00:00`));
-    return `
-      <g class="route-group">
-        <circle class="${cls}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}"
-          style="animation: cardIn 500ms var(--ease) ${p.i * 45}ms backwards">
-          <title>Depósito ${p.dep.number} — ${currency.format(p.dep.amount)} — ${done ? "concluído" : "pendente"}</title>
-        </circle>
-        <text class="route-label" x="${p.x.toFixed(1)}" y="${(p.y + 26).toFixed(1)}">${label}</text>
-        ${isNext ? `<circle class="route-pin" cx="${p.x.toFixed(1)}" cy="${(p.y - 20).toFixed(1)}" r="3.5"><animate attributeName="cy" values="${(p.y - 20).toFixed(1)};${(p.y - 26).toFixed(1)};${(p.y - 20).toFixed(1)}" dur="1.8s" repeatCount="indefinite"/></circle>` : ""}
-      </g>`;
-  }).join("");
-
-  const end = pts.at(-1);
+  els.routeSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   els.routeSvg.innerHTML = `
-    <path class="route-line" d="${smooth(pts)}" />
-    ${donePath ? `<path class="route-done" d="${donePath}" />` : ""}
-    ${nodes}
-    <g transform="translate(${(end.x + 14).toFixed(1)}, ${(end.y - 34).toFixed(1)})">
-      <path class="route-flag" d="M0 26V0l14 5.4L0 11z" />
-    </g>
-    <text class="route-label" x="${padX}" y="18" style="text-anchor:start">Início</text>
-    <text class="route-label" x="${W - padX}" y="18" style="text-anchor:end">Meta</text>
-  `;
+    <line class="tk-line" x1="${padX}" y1="${y}" x2="${W - padX}" y2="${y}" />
+    ${nodes.join("")}`;
 }
+
 
 /* plano + gráfico */
 function renderPlan() {
@@ -760,6 +697,45 @@ function renderHistory() {
 
 let chartPoints = [];
 let chartW = 0;
+
+/* versão enxuta do gráfico para o cartão da tela inicial: sem eixos,
+   sem rótulos, só as duas linhas. O gráfico completo fica em Plano. */
+function renderMiniChart() {
+  const goal = state.goal;
+  const svg = els.miniChart;
+  const W = Math.max(240, Math.round(svg.parentElement.getBoundingClientRect().width) || 320);
+  const H = 130, padY = 10;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  const max = goal.targetAmount || 1;
+  const n = goal.deposits.length;
+  const xAt = (i) => (n <= 1 ? W / 2 : (i / (n - 1)) * W);
+  const yAt = (v) => H - padY - (Math.min(v, max) / max) * (H - padY * 2);
+
+  let planned = goal.currentAmount;
+  let real = goal.currentAmount;
+  let ultimoPago = -1;
+  const planPts = [];
+  const realPts = [];
+
+  goal.deposits.forEach((d, i) => {
+    planned += d.amount;
+    if (d.paid) { real += d.paidAmount || d.amount; ultimoPago = i; }
+    planPts.push([xAt(i), yAt(planned)]);
+    if (i <= ultimoPago) realPts.push([xAt(i), yAt(real)]);
+  });
+
+  const linha = (pts) => pts.map((p, i) => `${i ? "L" : "M"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const fim = realPts.at(-1);
+
+  svg.innerHTML = `
+    <line class="grid-line" x1="0" y1="${padY}" x2="${W}" y2="${padY}" />
+    <line class="grid-line" x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" />
+    <line class="grid-line" x1="0" y1="${H - padY}" x2="${W}" y2="${H - padY}" />
+    <path class="s2-line" d="${linha(planPts)}" />
+    ${realPts.length > 1 ? `<path class="s1-line" d="${linha(realPts)}" />` : ""}
+    ${fim ? `<circle class="chart-dot" cx="${fim[0].toFixed(1)}" cy="${fim[1].toFixed(1)}" r="4.5" fill="var(--viz-1)" />` : ""}`;
+}
 
 function renderChart() {
   const goal = state.goal;
@@ -1784,6 +1760,27 @@ els.editGoalBtn.addEventListener("click", startEditGoal);
 els.logoutBtn.addEventListener("click", logout);
 els.payBtn.addEventListener("click", payNext);
 els.recalcBtn.addEventListener("click", recalculate);
+
+/* setas do topo: circulam entre as metas, como o seletor de mês da
+   referência circula entre meses */
+function cicloMeta(passo) {
+  if (state.goals.length < 2) return;
+  const i = state.goals.findIndex((g) => g.id === state.goal?.id);
+  const prox = (i + passo + state.goals.length) % state.goals.length;
+  openGoal(state.goals[prox].id);
+}
+els.prevGoalBtn.addEventListener("click", () => cicloMeta(-1));
+els.nextGoalBtn.addEventListener("click", () => cicloMeta(1));
+els.goPlanBtn.addEventListener("click", () => showScreen("plan"));
+
+/* tocar numa faixa leva para Depósitos já filtrado */
+els.bucketRows.addEventListener("click", (event) => {
+  const li = event.target.closest("[data-bucket]");
+  if (!li) return;
+  state.filter = li.dataset.bucket;
+  $$("#depositFilter button").forEach((b) => b.classList.toggle("is-active", b.dataset.filter === state.filter));
+  showScreen("deposits");
+});
 els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
 

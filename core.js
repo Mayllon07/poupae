@@ -171,6 +171,53 @@ function statsOf(goal) {
   return { saved, remaining, percent, paid, next, days };
 }
 
+/* Reparte os depósitos em quatro situações, no espírito da
+   "discriminação" de um app de contas: o que já entrou, o que vence
+   agora, o que passou do prazo e o que ainda está longe.
+   `hoje` entra por parâmetro para os testes não dependerem do relógio. */
+function depositBuckets(goal, hoje = new Date()) {
+  const vazio = { count: 0, total: 0, percent: 0 };
+  if (!goal || !goal.deposits.length) {
+    return { concluidos: { ...vazio }, vencidos: { ...vazio }, proximos: { ...vazio }, futuros: { ...vazio }, total: 0 };
+  }
+
+  const limite = new Date(hoje.getTime() + 7 * 86400000);
+  const b = {
+    concluidos: { count: 0, total: 0, percent: 0 },
+    vencidos: { count: 0, total: 0, percent: 0 },
+    proximos: { count: 0, total: 0, percent: 0 },
+    futuros: { count: 0, total: 0, percent: 0 },
+  };
+
+  for (const d of goal.deposits) {
+    const venc = endOfDay(d.date);
+    const alvo = d.paid ? b.concluidos : venc < hoje ? b.vencidos : venc <= limite ? b.proximos : b.futuros;
+    alvo.count += 1;
+    alvo.total = money(alvo.total + (d.paid ? d.paidAmount || d.amount : d.amount));
+  }
+
+  const total = money(Object.values(b).reduce((s, x) => s + x.total, 0));
+
+  /* Arredondar cada fatia por conta própria faz a soma dar 99 ou 101 —
+     visível num painel que mostra as quatro lado a lado. Método do maior
+     resíduo: distribui o que sobrou para quem tem a maior fração. */
+  const chaves = Object.keys(b);
+  if (!total) {
+    chaves.forEach((k) => { b[k].percent = 0; });
+  } else {
+    const exatos = chaves.map((k) => (b[k].total / total) * 100);
+    const base = exatos.map(Math.floor);
+    let resto = 100 - base.reduce((s, n) => s + n, 0);
+    const ordem = chaves
+      .map((k, i) => ({ i, frac: exatos[i] - base[i] }))
+      .sort((x, y) => y.frac - x.frac);
+    for (let n = 0; n < ordem.length && resto > 0; n += 1, resto -= 1) base[ordem[n].i] += 1;
+    chaves.forEach((k, i) => { b[k].percent = base[i]; });
+  }
+
+  return { ...b, total };
+}
+
 function monthlyRequired(goal) {
   if (!goal || !goal.deposits.length) return 0;
   const avg = goal.deposits.reduce((s, d) => s + d.amount, 0) / goal.deposits.length;

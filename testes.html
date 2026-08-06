@@ -205,6 +205,37 @@
         checa("diária multiplica por 30", monthlyRequired({ frequency: "daily", deposits: [{ amount: 10 }] }), 300);
         checa("sem depósitos é zero", monthlyRequired({ frequency: "weekly", deposits: [] }), 0);
 
+        /* ── depositBuckets ── */
+        grupo("depositBuckets — situação dos depósitos");
+        (function () {
+          const hoje = new Date("2026-03-10T12:00:00");
+          const meta = {
+            targetAmount: 1000,
+            currentAmount: 0,
+            deposits: [
+              { date: "2026-02-01", amount: 100, paid: true, paidAmount: 100 },
+              { date: "2026-02-15", amount: 100, paid: true, paidAmount: 120 },
+              { date: "2026-03-05", amount: 100, paid: false },
+              { date: "2026-03-12", amount: 100, paid: false },
+              { date: "2026-06-01", amount: 100, paid: false },
+            ],
+          };
+          const b = depositBuckets(meta, hoje);
+          checa("conta os concluídos", b.concluidos.count, 2);
+          checa("concluídos usam o valor pago", b.concluidos.total, 220);
+          checa("vencido é o que passou do prazo", b.vencidos.count, 1);
+          checa("próximo do vencimento: até 7 dias", b.proximos.count, 1);
+          checa("distante do vencimento", b.futuros.count, 1);
+          checa("soma bate com o total", b.total, 520);
+          checa("percentuais somam 100", b.concluidos.percent + b.vencidos.percent + b.proximos.percent + b.futuros.percent, 100);
+          checa("maior fatia leva o resto do arredondamento", b.concluidos.percent, 43);
+          checa("sem total, percentuais ficam zerados", depositBuckets({ deposits: [] }).concluidos.percent, 0);
+          checa("o dia do vencimento ainda não está vencido",
+            depositBuckets({ deposits: [{ date: "2026-03-10", amount: 50, paid: false }] }, hoje).vencidos.count, 0);
+          checa("sem meta não quebra", depositBuckets(null).total, 0);
+          checa("meta sem depósitos não quebra", depositBuckets({ deposits: [] }).total, 0);
+        })();
+
         /* ── createPlan ── */
         grupo("createPlan — plano completo");
         const plano = createPlan({
