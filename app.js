@@ -588,13 +588,21 @@ function renderRoute() {
   const hoje = new Date();
   const passo = idx.length > 1 ? (W - padX * 2) / (idx.length - 1) : 0;
 
+  // O <title> nativo do SVG só aparece em hover de mouse — no celular,
+  // que não tem hover, o toque num ponto não mostrava nada. O texto
+  // agora vai num atributo, e um toque no ponto abre um toast.
   const nodes = idx.map((di, i) => {
     const d = deps[di];
     const x = padX + i * passo;
     const venc = endOfDay(d.date);
     const cls = d.paid ? "done" : venc < hoje ? "late" : d.id === st.next?.id ? "next" : "todo";
     const r = cls === "next" ? 5.5 : 4.5;
-    return `<circle class="tk-node ${cls}" cx="${x.toFixed(1)}" cy="${y}" r="${r}"><title>Depósito ${d.number} — ${currency.format(d.amount)}</title></circle>
+    const status = d.paid ? "concluído" : venc < hoje ? "vencido" : "pendente";
+    const info = `Depósito ${d.number} · ${currency.format(d.paid ? d.paidAmount || d.amount : d.amount)} · ${status}`;
+    return `<circle class="tk-hit" cx="${x.toFixed(1)}" cy="${y}" r="11"
+        tabindex="0" role="button" data-node-info="${info}"
+      ></circle>
+            <circle class="tk-node ${cls}" cx="${x.toFixed(1)}" cy="${y}" r="${r}" data-node-info="${info}"><title>${info}</title></circle>
             <text class="tk-label" x="${x.toFixed(1)}" y="${y + 20}">${dateShort.format(new Date(`${d.date}T12:00:00`))}</text>`;
   });
 
@@ -1780,6 +1788,13 @@ els.bucketRows.addEventListener("click", (event) => {
   state.filter = li.dataset.bucket;
   $$("#depositFilter button").forEach((b) => b.classList.toggle("is-active", b.dataset.filter === state.filter));
   showScreen("deposits");
+});
+
+/* toque num ponto da linha de marcos mostra o depósito num toast —
+   o <title> nativo do SVG não aparece em toque, só em hover de mouse */
+els.routeSvg.addEventListener("click", (event) => {
+  const node = event.target.closest("[data-node-info]");
+  if (node) toast(node.dataset.nodeInfo);
 });
 els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
