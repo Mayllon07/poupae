@@ -1992,9 +1992,30 @@ function installSteps() {
   };
 }
 
+/* O .apk fica hospedado junto do site. Só serve para Android — no iPhone
+   e no computador o arquivo não instala nada, então nem aparece. */
+function apkOffer() {
+  const ua = navigator.userAgent;
+  const isAndroid = /android/i.test(ua) || /samsungbrowser/i.test(ua);
+  if (!isAndroid || isIOS()) return null;
+  return {
+    intro: "Baixe o aplicativo e instale direto, sem passar por loja.",
+    hint:
+      "Ao abrir o arquivo baixado, o Android vai pedir permissão para instalar de <b>fontes desconhecidas</b> — " +
+      "é o normal para qualquer app fora da Play Store. Toque em permitir e siga.",
+  };
+}
+
 function openInstallHelp() {
   const { intro, steps, note } = installSteps();
-  $("#installHelpIntro").innerHTML = intro;
+  const apk = apkOffer();
+
+  $("#installHelpIntro").innerHTML = apk ? apk.intro : intro;
+  $("#apkDownload").classList.toggle("is-hidden", !apk);
+  $("#apkHint").innerHTML = apk ? apk.hint : "";
+  $("#apkHint").classList.toggle("is-hidden", !apk);
+  $("#installOrLabel").classList.toggle("is-hidden", !apk);
+
   $("#installHelpSteps").innerHTML = steps.map((s) => `<li>${s}</li>`).join("");
   $("#installHelpNote").innerHTML = note;
   $("#installHelp").classList.remove("is-hidden");

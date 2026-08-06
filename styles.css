@@ -1453,6 +1453,42 @@ kbd {
   background: color-mix(in srgb, var(--warn) 9%, transparent);
 }
 .install-note:empty { display: none; }
+
+/* botão de baixar o .apk direto do site */
+.apk-btn {
+  text-decoration: none;
+  gap: 10px;
+  padding: 14px 20px;
+}
+.apk-btn span {
+  display: grid;
+  line-height: 1.25;
+  text-align: left;
+}
+.apk-btn small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.75;
+  letter-spacing: 0.04em;
+}
+
+.install-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0;
+  font-size: 0.78rem !important;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.install-or::before,
+.install-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
 .install-note code {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 0.94em;

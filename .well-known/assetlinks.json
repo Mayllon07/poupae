@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.mayllon07.poupae",
+        "sha256_cert_fingerprints": ["E6:36:1A:2B:5E:79:77:57:54:5A:C1:2C:DB:C8:9C:7D:D8:18:32:22:CF:1F:ED:F8:FD:23:7A:52:64:7B:64:A1"]
+      }
+    }]

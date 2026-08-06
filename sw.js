@@ -1,7 +1,7 @@
 /* Poupaê Aurora — service worker
    Deixa o app instalável e funcionando offline. */
 
-const VERSION = "poupae-aurora-v14";
+const VERSION = "poupae-aurora-v15";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -46,6 +46,10 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
+
+  // o .apk é um download de 1,4 MB: não faz sentido guardar em cache
+  // nem passar pelo service worker
+  if (/\.(apk|aab)$/i.test(url.pathname)) return;
 
   // navegação: rede primeiro (pega atualizações), cai para o cache offline
   if (request.mode === "navigate") {
