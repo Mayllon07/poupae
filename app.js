@@ -243,31 +243,28 @@ const state = {
 function maskMoney(event) {
   const el = event.target;
   const caret = el.selectionStart ?? el.value.length;
+  const inputType = event.inputType || "";
   let raw = el.value;
 
-  // teclado numérico que insere "." como decimal: vira vírgula
+  /* O ponto só vale como decimal quando o usuário ACABOU de digitá-lo,
+     ou quando colou um valor com ponto decimal. Fora disso ele é milhar.
+     Antes eu decidia isso pelo formato do texto inteiro, e apagar um
+     dígito de "1.234" caía no padrão "1.23": o milhar virava vírgula e o
+     limite de duas casas travava o campo. */
   if (event.data === "." && caret > 0 && raw[caret - 1] === ".") {
     raw = `${raw.slice(0, caret - 1)},${raw.slice(caret)}`;
+  } else if (inputType === "insertFromPaste" && /^\s*\d+\.\d{1,2}\s*$/.test(raw)) {
+    raw = raw.trim().replace(".", ",");
   }
-  // colado do tipo "1500.50": ponto único seguido de 1–2 casas é decimal
-  if (/^\d+\.\d{1,2}$/.test(raw.trim())) raw = raw.trim().replace(".", ",");
 
   let digitsBefore = 0;
   for (let i = 0; i < caret && i < raw.length; i++) {
     if (/[\d,]/.test(raw[i])) digitsBefore += 1;
   }
 
-  let s = raw.replace(/[^\d,]/g, "");
-  const firstComma = s.indexOf(",");
-  if (firstComma !== -1) {
-    s = `${s.slice(0, firstComma + 1)}${s.slice(firstComma + 1).replace(/,/g, "").slice(0, 2)}`;
-  }
-  let [int, dec] = s.split(",");
-  int = int.replace(/^0+(?=\d)/, "").slice(0, 12);
-  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  const next = dec === undefined ? intFmt : `${intFmt},${dec}`;
-
+  const next = maskMoneyText(raw);
   el.value = next;
+
   let pos = 0;
   let seen = 0;
   while (pos < next.length && seen < digitsBefore) {

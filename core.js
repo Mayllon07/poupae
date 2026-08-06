@@ -56,6 +56,22 @@ const parseMoney = (v) => {
   return Number(s) || 0;
 };
 
+/* Texto cru -> texto do campo: só dígitos e uma vírgula, no máximo duas
+   casas, milhar com ponto. Pura: não sabe de DOM nem de evento, e por
+   isso nunca reinterpreta um ponto de milhar como decimal. */
+const maskMoneyText = (raw) => {
+  let s = String(raw ?? "").replace(/[^\d,]/g, "");
+  const firstComma = s.indexOf(",");
+  if (firstComma !== -1) {
+    s = s.slice(0, firstComma + 1) + s.slice(firstComma + 1).replace(/,/g, "").slice(0, 2);
+  }
+  let [int, dec] = s.split(",");
+  int = int.replace(/^0+(?=\d)/, "").slice(0, 12);
+  if (dec !== undefined && int === "") int = "0";
+  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return dec === undefined ? intFmt : `${intFmt},${dec}`;
+};
+
 /* Valor -> texto do campo com máscara: "18.000" ou "1.628,50".
    Sem casas quando é inteiro, para não poluir a digitação. */
 const fmtMoneyBR = (n) => {

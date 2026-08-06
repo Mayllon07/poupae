@@ -1,7 +1,7 @@
 /* Poupaê Aurora — service worker
    Deixa o app instalável e funcionando offline. */
 
-const VERSION = "poupae-aurora-v12";
+const VERSION = "poupae-aurora-v13";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -50,7 +50,7 @@ self.addEventListener("fetch", (event) => {
   // navegação: rede primeiro (pega atualizações), cai para o cache offline
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "no-cache" })
         .then((response) => {
           const copy = response.clone();
           caches.open(SHELL_CACHE).then((c) => c.put("./index.html", copy));
@@ -66,8 +66,12 @@ self.addEventListener("fetch", (event) => {
     const isCode = /\.(js|css|webmanifest|json)$/i.test(url.pathname);
 
     if (isCode) {
+      /* "no-cache" força revalidar com o servidor. Sem isso o fetch pode
+         ser atendido pelo cache HTTP do navegador e o "rede primeiro"
+         entrega código velho do mesmo jeito — o GitHub Pages manda
+         max-age=600, então dava até 10 minutos servindo versão antiga. */
       event.respondWith(
-        fetch(request)
+        fetch(request, { cache: "no-cache" })
           .then((response) => {
             if (response && response.status === 200) {
               const copy = response.clone();
