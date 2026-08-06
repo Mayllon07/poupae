@@ -2083,6 +2083,13 @@ function applyLaunchScreen() {
   }
 }
 
+/* Reforço redundante do CSS "svg { color-scheme: only dark }": o
+   atributo inline é o sinal mais forte contra o Tema escuro automático
+   do Android, que às vezes trata SVG à parte do resto da página. */
+[els.routeSvg, els.miniChart, els.planChart].forEach((svg) => {
+  if (svg) svg.style.colorScheme = "only dark";
+});
+
 /* ── inicialização ───────────────────────────────────────── */
 setDefaultDeadline();
 goToStep(1);

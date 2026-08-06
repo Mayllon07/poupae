@@ -44,6 +44,16 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Reforço específico para SVG: o Tema escuro automático do Android
+   (força cores em conteúdo que ele julga "não pensado para o escuro")
+   às vezes trata elementos SVG à parte do resto da página, mesmo com
+   color-scheme já declarado no :root. Os pontos coloridos da linha de
+   marcos e os círculos de ícone são pequenos e muito saturados —
+   exatamente o padrão que esse recurso mais tende a alterar por
+   engano. Declarar de novo, direto no <svg>, é redundante com o :root
+   mas evita depender de herança em conteúdo inserido via innerHTML. */
+svg { color-scheme: only dark; }
 *::selection { background: rgba(50, 215, 75, 0.28); color: #fff; }
 
 body {
