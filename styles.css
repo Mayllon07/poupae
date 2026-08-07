@@ -482,6 +482,19 @@ kbd {
 .ic.info { background: var(--info); color: #04213f; }
 .ic.mute { background: var(--card-3); color: var(--ink-2); }
 
+/* ── defesa contra o escurecimento forçado ──────────────────
+   Samsung Internet e o Tema escuro automático do Android invertem a
+   luminosidade das cores CSS: os círculos vivos viram tons escuros e
+   as cores médias do gráfico viram pastel. O color-scheme: only dark
+   sozinho não segura esses navegadores.
+   Um gradiente de uma cor só é tecnicamente uma IMAGEM, e esses
+   algoritmos não mexem em imagens. Pinta idêntico e passa intacto. */
+.ic.ok { background-image: linear-gradient(var(--ok), var(--ok)); }
+.ic.bad { background-image: linear-gradient(var(--bad), var(--bad)); }
+.ic.warn { background-image: linear-gradient(var(--warn), var(--warn)); }
+.ic.info { background-image: linear-gradient(var(--info), var(--info)); }
+.ic.mute { background-image: linear-gradient(var(--card-3), var(--card-3)); }
+
 .row-label { flex: 1; font-size: 0.9rem; display: grid; gap: 1px; min-width: 0; }
 .row-label small { font-size: 0.74rem; color: var(--ink-3); }
 .row-val { font-size: 0.9rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -495,10 +508,10 @@ kbd {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.pct.ok { background: var(--ok-bg); color: var(--ok); }
-.pct.bad { background: var(--bad-bg); color: var(--bad); }
-.pct.warn { background: var(--warn-bg); color: var(--warn); }
-.pct.mute { background: var(--card-3); color: var(--ink-2); }
+.pct.ok { background-image: linear-gradient(var(--ok-bg), var(--ok-bg)); color: var(--ok); }
+.pct.bad { background-image: linear-gradient(var(--bad-bg), var(--bad-bg)); color: var(--bad); }
+.pct.warn { background-image: linear-gradient(var(--warn-bg), var(--warn-bg)); color: var(--warn); }
+.pct.mute { background-image: linear-gradient(var(--card-3), var(--card-3)); color: var(--ink-2); }
 
 .row-total {
   display: flex; justify-content: space-between;
@@ -909,6 +922,22 @@ kbd {
   .auth { padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
   #installBtn { display: none !important; }
 }
+
+/* Resto das superfícies coloridas, pelo mesmo motivo do bloco em .ic:
+   gradiente de uma cor só atravessa o escurecimento forçado intacto. */
+.btn-primary { background-image: linear-gradient(var(--brand), var(--brand)); }
+.btn-danger { background-image: linear-gradient(var(--bad-bg), var(--bad-bg)); }
+.dot.ok { background-image: linear-gradient(var(--ok), var(--ok)); }
+.dot.mute { background-image: linear-gradient(var(--ink-3), var(--ink-3)); }
+.insight-badge.good { background-image: linear-gradient(var(--ok-bg), var(--ok-bg)); }
+.insight-badge.warn { background-image: linear-gradient(var(--warn-bg), var(--warn-bg)); }
+.dep.is-paid .dep-num { background-image: linear-gradient(var(--ok-bg), var(--ok-bg)); }
+.status.paid { background-image: linear-gradient(var(--ok-bg), var(--ok-bg)); }
+.status.pending { background-image: linear-gradient(var(--warn-bg), var(--warn-bg)); }
+.award.is-done .award-badge { background-image: linear-gradient(var(--ok), var(--ok)); }
+.tab-glider, .seg-glider { background-image: linear-gradient(var(--brand), var(--brand)); }
+.meter i { background-image: linear-gradient(var(--ok), var(--ok)); }
+.preview-bars i { background-image: linear-gradient(var(--ok), var(--ok)); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
