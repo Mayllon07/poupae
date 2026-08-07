@@ -1550,7 +1550,7 @@ function drawShareCard(goal, st) {
 
   x.fillStyle = "rgba(255,255,255,0.4)";
   x.font = "600 30px Inter, system-ui, sans-serif";
-  x.fillText("Poupaê Aurora", cx, S * 0.945);
+  x.fillText("Poupaê", cx, S * 0.945);
 
   return c;
 }
@@ -1590,7 +1590,12 @@ async function shareProgress() {
 /* O arquivo leva a conta (com o hash, nunca a senha em claro) e as
    metas. Assim, restaurar num aparelho novo devolve o login e os dados
    de uma vez — sem isso, os dados morrem presos a um navegador. */
-const BACKUP_MARKER = "poupae-aurora";
+/* O marcador vai gravado dentro do arquivo de backup e é conferido na
+   importação. O app se chamava "Poupaê Aurora", então backups antigos
+   trazem o marcador velho — a importação aceita os dois, senão um
+   arquivo já exportado passaria a ser rejeitado. */
+const BACKUP_MARKER = "poupae";
+const BACKUP_MARKERS_ACEITOS = ["poupae", "poupae-aurora"];
 
 function exportData() {
   const payload = {
@@ -1611,7 +1616,7 @@ function exportData() {
 }
 
 function importPayload(payload) {
-  if (!payload || payload.app !== BACKUP_MARKER || !payload.account?.email || !Array.isArray(payload.goals)) {
+  if (!payload || !BACKUP_MARKERS_ACEITOS.includes(payload.app) || !payload.account?.email || !Array.isArray(payload.goals)) {
     throw new Error("Esse arquivo não parece um backup do Poupaê.");
   }
   const email = String(payload.account.email).toLowerCase();
