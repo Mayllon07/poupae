@@ -2065,7 +2065,27 @@ $("#installHelp").addEventListener("click", (event) => {
   if (event.target.id === "installHelp") closeInstallHelp();
 });
 
+/* O service worker usa skipWaiting + clients.claim, entao a versao nova
+   assume o controle sozinha. So que a pagina ja carregada continua
+   exibindo o CSS e o JS que estao na memoria dela — e o app parece
+   "identico a antes" mesmo com tudo novo publicado. Recarregar quando o
+   controle troca fecha essa lacuna, sem depender de fechar o app a mao. */
 if ("serviceWorker" in navigator) {
+  const tinhaControlador = Boolean(navigator.serviceWorker.controller);
+  let recarregando = false;
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    // na primeira visita nao havia controlador: trocar nao e atualizacao
+    if (!tinhaControlador || recarregando) return;
+    recarregando = true;
+    location.reload();
+  });
+
+  // com o app aberto por muito tempo, procura versao nova de hora em hora
+  setInterval(() => {
+    navigator.serviceWorker.getRegistration().then((reg) => reg && reg.update()).catch(() => {});
+  }, 60 * 60 * 1000);
+
   addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(() => {
       /* http sem TLS ou navegador sem suporte: o app segue funcionando online */
