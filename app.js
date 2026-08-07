@@ -46,6 +46,23 @@ const els = {
   railPercent: $("#railPercent"),
   railBar: $("#railBar"),
   railHint: $("#railHint"),
+
+  drawer: $("#drawer"),
+  drawerBtn: $("#drawerBtn"),
+  drawerScrim: $("#drawerScrim"),
+  drawerInitials: $("#drawerInitials"),
+  drawerEmail: $("#drawerEmail"),
+  drawerSaved: $("#drawerSaved"),
+
+  topGoalName: $("#topGoalName"),
+  topAmount: $("#topAmount"),
+  topTabs: $("#topTabs"),
+  goalSwitchBtn: $("#goalSwitchBtn"),
+
+  donutValue: $("#donutValue"),
+  donutPercent: $("#donutPercent"),
+  donutCaption: $("#donutCaption"),
+  fabPay: $("#fabPay"),
   railGlider: $(".rail-glider"),
   dockGlider: $(".dock-glider"),
 
@@ -236,6 +253,7 @@ const state = {
   search: "",
   editing: false,
   step: 1,
+  topTab: "saved", // aba do cabeçalho: "saved" ou "left"
 };
 
 /* ── máscara de dinheiro (campos [data-money]) ───────────────
@@ -450,9 +468,12 @@ function renderChrome() {
   els.cancelEditBtn.classList.toggle("is-hidden", !state.editing);
 
   const name = state.user?.name || "";
-  els.avatarInitials.textContent = name.trim().charAt(0).toUpperCase() || "P";
+  const inicial = name.trim().charAt(0).toUpperCase() || "P";
+  els.avatarInitials.textContent = inicial;
+  els.drawerInitials.textContent = inicial;
   els.menuName.textContent = name;
   els.menuEmail.textContent = state.user?.email || "";
+  els.drawerEmail.textContent = state.user?.email || "";
 
   const st = statsOf(state.goal);
   els.railPercent.textContent = `${st.percent.toFixed(0)}%`;
@@ -460,6 +481,11 @@ function renderChrome() {
   els.railHint.textContent = state.goal
     ? `${st.paid.length} de ${state.goal.deposits.length} depósitos`
     : "Crie sua primeira meta";
+  els.drawerSaved.textContent = `Guardado: ${currency.format(st.saved)}`;
+
+  // o cabeçalho verde mostra a meta e o valor da aba escolhida
+  els.topGoalName.textContent = state.goal ? state.goal.name : "Nenhuma meta";
+  els.topAmount.textContent = currency.format(state.topTab === "left" ? st.remaining : st.saved);
 
   if (setup) renderPreview();
 }
@@ -499,6 +525,12 @@ function renderDashboard() {
   const varias = state.goals.length > 1;
   els.prevGoalBtn.classList.toggle("is-hidden", !varias);
   els.nextGoalBtn.classList.toggle("is-hidden", !varias);
+
+  // rosca de progresso: r=80, circunferência 2πr
+  const circ = 2 * Math.PI * 80;
+  els.donutValue.style.strokeDashoffset = String(circ * (1 - st.percent / 100));
+  countTo(els.donutPercent, st.percent, (v) => `${v.toFixed(0)}%`);
+  els.donutCaption.textContent = st.next ? "da meta" : "concluída";
 
   els.kpiTarget.textContent = currency.format(goal.targetAmount);
   countTo(els.kpiSaved, st.saved);
@@ -985,7 +1017,8 @@ function renderGoals() {
     return `
       <article class="goal-card ${active ? "is-active" : ""}" style="animation-delay:${i * 70}ms">
         <div class="goal-top">
-          <div>
+          <span class="ic ${goal.reason || "reserva"}">${motivoSvg(goal.reason)}</span>
+          <div style="flex:1;min-width:0">
             <p class="eyebrow">${active ? "Meta ativa" : "Meta salva"}</p>
             <h3>${goal.name}</h3>
             <p class="amount">${currency.format(st.saved)} de ${currency.format(goal.targetAmount)}</p>
@@ -1238,6 +1271,8 @@ function showScreen(screen) {
   if (!["account", "goals"].includes(screen) && !state.goal) state.screen = "dashboard";
   if (screen !== "dashboard") state.editing = false;
   els.avatarMenu.classList.remove("is-open");
+  els.drawer.classList.remove("is-open");
+  els.drawerScrim.classList.remove("is-open");
   render();
   els.scroller.scrollTo({ top: 0, behavior: motionOff ? "auto" : "smooth" });
 }
@@ -1785,6 +1820,49 @@ function cicloMeta(passo) {
 els.prevGoalBtn.addEventListener("click", () => cicloMeta(-1));
 els.nextGoalBtn.addEventListener("click", () => cicloMeta(1));
 els.goPlanBtn.addEventListener("click", () => showScreen("plan"));
+els.goalSwitchBtn.addEventListener("click", () => showScreen("goals"));
+els.fabPay.addEventListener("click", payNext);
+
+/* Cada motivo ganha cor e desenho próprios, no lugar das categorias de
+   despesa da referência. O motivo já existia no Poupaê mas não aparecia
+   em lugar nenhum — agora identifica a meta de relance. */
+const MOTIVO_ICONE = {
+  reserva: '<path d="M12 3.5 5 6.5v5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9v-5z"/>',
+  viagem: '<path d="M10.5 19.5 12 14l7.5-2 1.5-2.5-3-1-3 2-5-1.4 1-1.6-1.5-.5-2.5 2.5-4 1.1v1.8l3.5 1.2-1 2.4-3-.4-.5 1.3 3.5 1.6z"/>',
+  compra: '<path d="M6 8h12l-1 11H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  divida: '<path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z"/><path d="M9.5 8.5h5M9.5 12h5"/>',
+  investimento: '<path d="M4 17 9.5 11l3.5 3.5L20 7"/><path d="M14.5 7H20v5.5"/>',
+  sonho: '<path d="M12 20s-7-4.4-7-9.2A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.8C19 15.6 12 20 12 20z"/>',
+};
+
+function motivoSvg(reason) {
+  const d = MOTIVO_ICONE[reason] || MOTIVO_ICONE.reserva;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+}
+
+/* ── gaveta ──────────────────────────────────────────────── */
+const abrirGaveta = () => {
+  els.drawer.classList.add("is-open");
+  els.drawerScrim.classList.add("is-open");
+};
+const fecharGaveta = () => {
+  els.drawer.classList.remove("is-open");
+  els.drawerScrim.classList.remove("is-open");
+};
+els.drawerBtn.addEventListener("click", abrirGaveta);
+els.drawerScrim.addEventListener("click", fecharGaveta);
+
+/* ── abas do cabeçalho: guardado x falta ─────────────────── */
+els.topTabs.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-toptab]");
+  if (!btn) return;
+  state.topTab = btn.dataset.toptab;
+  $$("#topTabs .ttab").forEach((b) => b.classList.toggle("is-active", b === btn));
+  if (state.goal) {
+    const st = statsOf(state.goal);
+    els.topAmount.textContent = currency.format(state.topTab === "left" ? st.remaining : st.saved);
+  }
+});
 
 /* tocar numa faixa leva para Depósitos já filtrado */
 els.bucketRows.addEventListener("click", (event) => {
@@ -1840,6 +1918,14 @@ document.addEventListener("click", (event) => {
   const dep = event.target.closest("[data-dep]");
   if (dep) return toggleDeposit(dep.dataset.dep);
   if (event.target.closest("[data-new-goal]")) return startNewGoal();
+
+  // ações da gaveta que não são navegação de tela
+  const acao = event.target.closest("[data-drawer-action]");
+  if (acao) {
+    fecharGaveta();
+    if (acao.dataset.drawerAction === "recalc") return recalculate();
+    if (acao.dataset.drawerAction === "share") return shareProgress();
+  }
 });
 
 els.depositSearch.addEventListener("input", (e) => { state.search = e.target.value; renderDeposits(); });

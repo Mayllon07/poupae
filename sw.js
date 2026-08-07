@@ -1,7 +1,7 @@
 /* Poupaê — service worker
    Deixa o app instalável e funcionando offline. */
 
-const VERSION = "poupae-v22";
+const VERSION = "poupae-v23";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

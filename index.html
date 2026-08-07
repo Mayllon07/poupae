@@ -6,7 +6,7 @@
     <!-- sem media: o JS sincroniza com o tema escolhido DENTRO do app.
          Com media, a barra de status seguiria o tema do sistema e ficaria
          escura mesmo com o app no modo claro. -->
-    <meta id="themeColor" name="theme-color" content="#000000" />
+    <meta id="themeColor" name="theme-color" content="#2c5545" />
     <!-- app só escuro: avisa cedo, para o navegador não tentar
          reinterpretar as cores por conta própria -->
     <meta name="color-scheme" content="dark" />
@@ -125,13 +125,15 @@
 
     <!-- ══ APLICATIVO ═════════════════════════════════════ -->
     <div id="appShell" class="shell is-hidden">
-      <!-- barra lateral -->
-      <aside class="rail">
-        <div class="brand">
-          <span class="mark" aria-hidden="true">
-            <img src="icons/logo-mark.png" alt="" width="256" height="256" />
-          </span>
-          <span class="brand-text"><b>Poupaê</b></span>
+      <!-- gaveta: fixa no computador, deslizante no celular -->
+      <div id="drawerScrim" class="drawer-scrim" aria-hidden="true"></div>
+      <aside class="rail" id="drawer">
+        <div class="drawer-user">
+          <span class="drawer-avatar" id="drawerInitials" aria-hidden="true">P</span>
+          <div class="drawer-user-txt">
+            <b id="drawerEmail">—</b>
+            <small id="drawerSaved">Guardado: R$ 0,00</small>
+          </div>
         </div>
 
         <nav class="rail-nav" aria-label="Navegação principal">
@@ -146,7 +148,7 @@
           </button>
           <button class="rail-item" data-screen="plan" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9.5 10.5 13.5 14.5 21 6" /><polyline points="14.5 6 21 6 21 12.5" /></svg>
-            <b>Plano</b>
+            <b>Gráficos</b>
           </button>
           <button class="rail-item" data-screen="deposits" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3" /><path d="M3.5 9.5h17M8 3v3M16 3v3M8 14h3" /></svg>
@@ -160,9 +162,17 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="10" r="3" /><path d="M5.7 18.5a6.8 6.8 0 0 1 12.6 0" stroke-linecap="round" /></svg>
             <b>Conta</b>
           </button>
+          <button class="rail-item" data-drawer-action="recalc" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5A8 8 0 0 0 6.3 6.3L4 8.5" /><path d="M4 4v4.5h4.5" /><path d="M4 12.5A8 8 0 0 0 17.7 17.7L20 15.5" /><path d="M20 20v-4.5h-4.5" /></svg>
+            <b>Recalcular plano</b>
+          </button>
+          <button class="rail-item" data-drawer-action="share" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5.5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="18.5" r="2.6" /><path d="m8.3 10.8 7.4-4M8.3 13.2l7.4 4" /></svg>
+            <b>Compartilhar progresso</b>
+          </button>
         </nav>
 
-        <div class="rail-progress glass-soft">
+        <div class="rail-progress">
           <span>Progresso</span>
           <strong id="railPercent">0%</strong>
           <div class="meter"><i id="railBar"></i></div>
@@ -172,36 +182,44 @@
 
       <!-- conteúdo -->
       <div class="main">
-        <header id="topbar" class="topbar glass">
-          <div class="brand brand-sm">
-            <span class="mark" aria-hidden="true">
-              <img src="icons/logo-mark.png" alt="" width="256" height="256" />
-            </span>
-            <span class="brand-text"><b>Poupaê</b></span>
-          </div>
-
-          <button id="cmdOpen" class="cmd-hint" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
-            <span>Buscar ou executar…</span>
-            <kbd>Ctrl</kbd><kbd>K</kbd>
-          </button>
-
-          <div class="top-actions">
-            <button id="installBtn" class="btn btn-ghost is-hidden" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 3.5v11m0 0 4-4m-4 4-4-4" /><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" /></svg>
-              Instalar
+        <header id="topbar" class="topbar">
+          <div class="topbar-row">
+            <button id="drawerBtn" class="icon-btn ghost" type="button" aria-label="Abrir menu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
             </button>
-            <button id="newGoalBtn" class="btn btn-ghost is-hidden" type="button">Nova meta</button>
-            <button id="editGoalBtn" class="btn btn-ghost is-hidden" type="button">Editar</button>
-            <div class="avatar-wrap">
-              <button id="avatarBtn" class="avatar" type="button" aria-label="Conta"><span id="avatarInitials">P</span></button>
-              <div id="avatarMenu" class="menu glass">
-                <p id="menuName">—</p>
-                <small id="menuEmail">—</small>
-                <button data-screen="account" type="button">Minha conta</button>
-                <button id="logoutBtn" class="danger" type="button">Sair</button>
+
+            <div class="topbar-mid">
+              <button id="goalSwitchBtn" class="topbar-goal" type="button">
+                <span id="topGoalName">Minha meta</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5" /></svg>
+              </button>
+              <strong id="topAmount">R$ 0,00</strong>
+            </div>
+
+            <div class="top-actions">
+              <button id="installBtn" class="icon-btn ghost is-hidden" type="button" aria-label="Instalar aplicativo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11m0 0 4-4m-4 4-4-4" /><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" /></svg>
+              </button>
+              <button id="cmdOpen" class="icon-btn ghost" type="button" aria-label="Buscar ou executar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+              </button>
+              <div class="avatar-wrap">
+                <button id="avatarBtn" class="avatar" type="button" aria-label="Conta"><span id="avatarInitials">P</span></button>
+                <div id="avatarMenu" class="menu">
+                  <p id="menuName">—</p>
+                  <small id="menuEmail">—</small>
+                  <button data-screen="account" type="button">Minha conta</button>
+                  <button id="newGoalBtn" type="button">Nova meta</button>
+                  <button id="editGoalBtn" type="button">Editar meta</button>
+                  <button id="logoutBtn" class="danger" type="button">Sair</button>
+                </div>
               </div>
             </div>
+          </div>
+
+          <div class="topbar-tabs" id="topTabs" role="tablist">
+            <button class="ttab is-active" data-toptab="saved" type="button">GUARDADO</button>
+            <button class="ttab" data-toptab="left" type="button">FALTA</button>
           </div>
         </header>
 
@@ -312,34 +330,40 @@
         <div id="screens" class="screens is-hidden">
           <!-- INÍCIO -->
           <section id="screen-dashboard" class="screen is-active">
-            <!-- trocador de meta, no lugar do seletor de mês da referência -->
-            <header class="goal-switch">
-              <button id="prevGoalBtn" class="icon-btn ghost" type="button" aria-label="Meta anterior">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6" /></svg>
-              </button>
-              <div class="goal-switch-mid">
-                <h1 id="goalTitle">Minha meta</h1>
-                <p id="greeting">Plano ativo</p>
+            <!-- cartão da rosca, subindo por cima do cabeçalho verde -->
+            <article class="card card-lift">
+              <div class="subtabs" id="goalNav">
+                <button id="prevGoalBtn" class="subtab-arrow" type="button" aria-label="Meta anterior">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6" /></svg>
+                </button>
+                <span class="subtab-mid"><u id="goalTitle">Minha meta</u></span>
+                <button id="nextGoalBtn" class="subtab-arrow" type="button" aria-label="Próxima meta">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+                </button>
               </div>
-              <button id="nextGoalBtn" class="icon-btn ghost" type="button" aria-label="Próxima meta">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
-              </button>
-            </header>
 
-            <div class="summary3">
-              <div>
-                <span class="s3-label"><i class="dot ok" aria-hidden="true"></i> Guardado</span>
-                <b class="chip-val" data-count id="kpiSaved">R$ 0,00</b>
+              <div class="donut-wrap">
+                <svg id="donutSvg" class="donut" viewBox="0 0 200 200" role="img" aria-labelledby="donutLabel">
+                  <title id="donutLabel">Progresso da meta</title>
+                  <circle class="donut-track" cx="100" cy="100" r="80" />
+                  <circle id="donutValue" class="donut-value" cx="100" cy="100" r="80" />
+                  <circle class="donut-hole" cx="100" cy="100" r="60" />
+                  <circle class="donut-dash" cx="100" cy="100" r="53" />
+                </svg>
+                <div class="donut-mid">
+                  <strong id="donutPercent">0%</strong>
+                  <small id="donutCaption">da meta</small>
+                </div>
+                <button id="fabPay" class="fab" type="button" aria-label="Registrar depósito">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                </button>
               </div>
-              <div class="s3-main">
-                <span class="s3-label">Meta</span>
-                <b id="kpiTarget">R$ 0,00</b>
-              </div>
-              <div>
-                <span class="s3-label"><i class="dot mute" aria-hidden="true"></i> Falta</span>
-                <b class="chip-val" data-count id="kpiRemaining">R$ 0,00</b>
-              </div>
-            </div>
+
+              <p class="donut-legend"><span id="greeting">Plano ativo</span></p>
+              <span class="is-hidden" id="kpiTarget">R$ 0,00</span>
+              <span class="is-hidden" data-count id="kpiSaved">R$ 0,00</span>
+              <span class="is-hidden" data-count id="kpiRemaining">R$ 0,00</span>
+            </article>
 
             <div class="track-strip">
               <svg id="routeSvg" role="img" aria-label="Linha do tempo dos depósitos"></svg>
