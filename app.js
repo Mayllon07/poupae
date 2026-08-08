@@ -46,23 +46,6 @@ const els = {
   railPercent: $("#railPercent"),
   railBar: $("#railBar"),
   railHint: $("#railHint"),
-
-  drawer: $("#drawer"),
-  drawerBtn: $("#drawerBtn"),
-  drawerScrim: $("#drawerScrim"),
-  drawerInitials: $("#drawerInitials"),
-  drawerEmail: $("#drawerEmail"),
-  drawerSaved: $("#drawerSaved"),
-
-  topGoalName: $("#topGoalName"),
-  topAmount: $("#topAmount"),
-  topTabs: $("#topTabs"),
-  goalSwitchBtn: $("#goalSwitchBtn"),
-
-  donutValue: $("#donutValue"),
-  donutPercent: $("#donutPercent"),
-  donutCaption: $("#donutCaption"),
-  fabPay: $("#fabPay"),
   railGlider: $(".rail-glider"),
   dockGlider: $(".dock-glider"),
 
@@ -92,22 +75,19 @@ const els = {
   screens: $("#screens"),
   greeting: $("#greeting"),
   goalTitle: $("#goalTitle"),
-  kpiTarget: $("#kpiTarget"),
+  goalSubtitle: $("#goalSubtitle"),
+  heroChips: $("#heroChips"),
+  ringValue: $("#ringValue"),
+  ringPercent: $("#ringPercent"),
+
   kpiSaved: $("#kpiSaved"),
+  kpiSavedBar: $("#kpiSavedBar"),
   kpiRemaining: $("#kpiRemaining"),
+  kpiRemainingHint: $("#kpiRemainingHint"),
   kpiNext: $("#kpiNext"),
   kpiNextHint: $("#kpiNextHint"),
   kpiDays: $("#kpiDays"),
   kpiDaysHint: $("#kpiDaysHint"),
-  ovSaved: $("#ovSaved"),
-  ovRemaining: $("#ovRemaining"),
-
-  bucketRows: $("#bucketRows"),
-  bucketTotal: $("#bucketTotal"),
-  miniChart: $("#miniChart"),
-  prevGoalBtn: $("#prevGoalBtn"),
-  nextGoalBtn: $("#nextGoalBtn"),
-  goPlanBtn: $("#goPlanBtn"),
 
   routePill: $("#routePill"),
   routeSvg: $("#routeSvg"),
@@ -178,6 +158,7 @@ const els = {
   confirmOk: $("#confirmOk"),
   confirmCancel: $("#confirmCancel"),
   confetti: $("#confetti"),
+  field: $("#fieldCanvas"),
   spotlight: $("#spotlight"),
 };
 
@@ -253,7 +234,6 @@ const state = {
   search: "",
   editing: false,
   step: 1,
-  topTab: "saved", // aba do cabeçalho: "saved" ou "left"
 };
 
 /* ── máscara de dinheiro (campos [data-money]) ───────────────
@@ -317,6 +297,65 @@ const revealer = new IntersectionObserver(
   { threshold: 0.12 }
 );
 const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el));
+
+/* campo de partículas */
+(function particleField() {
+  if (motionOff) return;
+  const cvs = els.field;
+  const ctx = cvs.getContext("2d");
+  let w, h, dots = [];
+
+  const resize = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = cvs.width = innerWidth * dpr;
+    h = cvs.height = innerHeight * dpr;
+    cvs.style.width = `${innerWidth}px`;
+    cvs.style.height = `${innerHeight}px`;
+    const count = Math.round((innerWidth * innerHeight) / 26000);
+    dots = Array.from({ length: count }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: (Math.random() * 1.7 + 0.4) * dpr,
+      s: (Math.random() * 0.24 + 0.06) * dpr,
+      a: Math.random() * Math.PI * 2,
+      o: Math.random() * 0.45 + 0.12,
+    }));
+  };
+
+  const tick = () => {
+    ctx.clearRect(0, 0, w, h);
+    for (const d of dots) {
+      d.y -= d.s;
+      d.a += 0.008;
+      d.x += Math.sin(d.a) * 0.22;
+      if (d.y < -6) { d.y = h + 6; d.x = Math.random() * w; }
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(150,255,214,${d.o})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  };
+
+  resize();
+  addEventListener("resize", resize);
+  requestAnimationFrame(tick);
+})();
+
+/* luz que segue o cursor */
+(function spotlight() {
+  if (motionOff) return;
+  let tx = innerWidth / 2, ty = innerHeight * 0.3, cx = tx, cy = ty;
+  addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; }, { passive: true });
+  const loop = () => {
+    cx += (tx - cx) * 0.07;
+    cy += (ty - cy) * 0.07;
+    els.spotlight.style.setProperty("--mx", `${cx}px`);
+    els.spotlight.style.setProperty("--my", `${cy}px`);
+    requestAnimationFrame(loop);
+  };
+  loop();
+})();
 
 /* confete */
 function burstConfetti() {
@@ -431,7 +470,6 @@ function render() {
   if (!state.goal) return;
   renderDashboard();
   renderRoute();
-  renderMiniChart();
   renderPlan();
   renderDeposits();
   renderAwards();
@@ -468,12 +506,9 @@ function renderChrome() {
   els.cancelEditBtn.classList.toggle("is-hidden", !state.editing);
 
   const name = state.user?.name || "";
-  const inicial = name.trim().charAt(0).toUpperCase() || "P";
-  els.avatarInitials.textContent = inicial;
-  els.drawerInitials.textContent = inicial;
+  els.avatarInitials.textContent = name.trim().charAt(0).toUpperCase() || "P";
   els.menuName.textContent = name;
   els.menuEmail.textContent = state.user?.email || "";
-  els.drawerEmail.textContent = state.user?.email || "";
 
   const st = statsOf(state.goal);
   els.railPercent.textContent = `${st.percent.toFixed(0)}%`;
@@ -481,11 +516,6 @@ function renderChrome() {
   els.railHint.textContent = state.goal
     ? `${st.paid.length} de ${state.goal.deposits.length} depósitos`
     : "Crie sua primeira meta";
-  els.drawerSaved.textContent = `Guardado: ${currency.format(st.saved)}`;
-
-  // o cabeçalho verde mostra a meta e o valor da aba escolhida
-  els.topGoalName.textContent = state.goal ? state.goal.name : "Nenhuma meta";
-  els.topAmount.textContent = currency.format(state.topTab === "left" ? st.remaining : st.saved);
 
   if (setup) renderPreview();
 }
@@ -515,37 +545,34 @@ function renderDashboard() {
   const hour = new Date().getHours();
   const part = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
-  const streak = streakOf(goal);
+  els.greeting.textContent = `${part}, ${(state.user?.name || "").split(" ")[0]}`;
   els.goalTitle.textContent = goal.name;
-  els.greeting.textContent = streak.current >= 2
-    ? `${part}, ${(state.user?.name || "").split(" ")[0]} · ${streak.current} seguidos no prazo`
-    : `${part}, ${(state.user?.name || "").split(" ")[0]}`;
+  els.goalSubtitle.textContent = `Plano ${stratLabel(goal.strategy)} com frequência ${freqLabel(goal.frequency)} para ${REASONS[goal.reason] || "sua meta"}.`;
 
-  // as duas setas só fazem sentido com mais de uma meta
-  const varias = state.goals.length > 1;
-  els.prevGoalBtn.classList.toggle("is-hidden", !varias);
-  els.nextGoalBtn.classList.toggle("is-hidden", !varias);
+  const streak = streakOf(goal);
+  const chips = [
+    `Meta ${currency.format(goal.targetAmount)}`,
+    `${goal.deposits.length} depósitos`,
+    `Até ${fmtDate(goal.deadline)}`,
+  ].map((t) => `<span class="pill">${t}</span>`);
+  if (streak.current >= 2) {
+    chips.unshift(`<span class="pill pill-streak">${streak.current} seguidos no prazo</span>`);
+  }
+  els.heroChips.innerHTML = chips.join("");
 
-  // rosca de progresso: r=80, circunferência 2πr
-  const circ = 2 * Math.PI * 80;
-  els.donutValue.style.strokeDashoffset = String(circ * (1 - st.percent / 100));
-  countTo(els.donutPercent, st.percent, (v) => `${v.toFixed(0)}%`);
-  els.donutCaption.textContent = st.next ? "da meta" : "concluída";
+  const circ = 2 * Math.PI * 84;
+  els.ringValue.style.strokeDashoffset = String(circ * (1 - st.percent / 100));
+  countTo(els.ringPercent, st.percent, (v) => `${v.toFixed(0)}%`);
 
-  els.kpiTarget.textContent = currency.format(goal.targetAmount);
   countTo(els.kpiSaved, st.saved);
+  els.kpiSavedBar.style.width = `${st.percent}%`;
   countTo(els.kpiRemaining, st.remaining);
-  els.ovSaved.textContent = currency.format(st.saved);
-  els.ovRemaining.textContent = currency.format(st.remaining);
+  els.kpiRemainingHint.textContent = `${(100 - st.percent).toFixed(0)}% do caminho`;
 
   countTo(els.kpiNext, st.next ? st.next.amount : 0);
-  els.kpiNextHint.textContent = st.next
-    ? `${endOfDay(st.next.date) < new Date() ? "venceu" : "vence"} em ${fmtDate(st.next.date)}`
-    : "tudo concluído";
+  els.kpiNextHint.textContent = st.next ? fmtDate(st.next.date) : "Tudo concluído";
   els.kpiDays.textContent = st.days === 1 ? "1 dia" : `${st.days} dias`;
-  els.kpiDaysHint.textContent = `${goal.deposits.length - st.paid.length} depósitos restantes`;
-
-  renderBuckets(goal);
+  els.kpiDaysHint.textContent = `Até ${fmtDate(goal.deadline)}`;
 
   if (st.next) {
     els.actionTitle.textContent = `Depósito ${st.next.number} de ${goal.deposits.length}`;
@@ -567,83 +594,79 @@ function renderDashboard() {
   els.insightText.textContent = h.text;
 }
 
-/* situação dos depósitos — as quatro faixas, no espírito da
-   "discriminação" de um app de contas */
-function renderBuckets(goal) {
-  const b = depositBuckets(goal);
-  const linhas = [
-    { k: "concluidos", tom: "ok", rotulo: "Concluídos", filtro: "paid" },
-    { k: "proximos", tom: "warn", rotulo: "Próximo do vencimento", filtro: "pending" },
-    { k: "vencidos", tom: "bad", rotulo: "Vencidos", filtro: "pending" },
-    { k: "futuros", tom: "mute", rotulo: "A vencer", filtro: "pending" },
-  ];
-
-  els.bucketRows.innerHTML = linhas
-    .map(({ k, tom, rotulo, filtro }) => `
-      <li class="row" data-bucket="${filtro}">
-        <span class="pct ${tom}">${b[k].percent}%</span>
-        <span class="row-label">${rotulo}<small>${b[k].count} ${b[k].count === 1 ? "depósito" : "depósitos"}</small></span>
-        <span class="row-val">${currency.format(b[k].total)}</span>
-        <svg class="row-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
-      </li>`)
-    .join("");
-
-  els.bucketTotal.textContent = currency.format(goal.targetAmount);
-}
-
-/* faixa de marcos: bolinhas numa linha reta, como a régua de dias da
-   referência. Substitui a curva sinuosa do desenho antigo. */
+/* rota com marcos */
 function renderRoute() {
   const goal = state.goal;
   const deps = goal.deposits;
   const st = statsOf(goal);
   els.routePill.textContent = `${st.paid.length} de ${deps.length}`;
 
-  /* Amostragem uniforme perderia justamente o próximo depósito, que é o
-     ponto que a pessoa procura. Ele entra sempre, trocando o vizinho. */
-  const maxNodes = 7;
-  let idx;
-  if (deps.length <= maxNodes) {
-    idx = deps.map((_, i) => i);
-  } else {
-    idx = Array.from({ length: maxNodes }, (_, i) => Math.round((i * (deps.length - 1)) / (maxNodes - 1)));
-    const alvo = st.next ? deps.indexOf(st.next) : -1;
-    if (alvo >= 0 && !idx.includes(alvo)) {
-      let maisPerto = 0;
-      idx.forEach((v, i) => { if (Math.abs(v - alvo) < Math.abs(idx[maisPerto] - alvo)) maisPerto = i; });
-      idx[maisPerto] = alvo;
-      idx.sort((a, b) => a - b);
-    }
-  }
+  const maxNodes = 13;
+  const idx = deps.length <= maxNodes
+    ? deps.map((_, i) => i)
+    : Array.from({ length: maxNodes }, (_, i) => Math.round((i * (deps.length - 1)) / (maxNodes - 1)));
 
-  const W = 320, H = 44, padX = 14, y = 13;
-  const hoje = new Date();
-  const passo = idx.length > 1 ? (W - padX * 2) / (idx.length - 1) : 0;
-
-  // O <title> nativo do SVG só aparece em hover de mouse — no celular,
-  // que não tem hover, o toque num ponto não mostrava nada. O texto
-  // agora vai num atributo, e um toque no ponto abre um toast.
-  const nodes = idx.map((di, i) => {
-    const d = deps[di];
-    const x = padX + i * passo;
-    const venc = endOfDay(d.date);
-    const cls = d.paid ? "done" : venc < hoje ? "late" : d.id === st.next?.id ? "next" : "todo";
-    const r = cls === "next" ? 5.5 : 4.5;
-    const status = d.paid ? "concluído" : venc < hoje ? "vencido" : "pendente";
-    const info = `Depósito ${d.number} · ${currency.format(d.paid ? d.paidAmount || d.amount : d.amount)} · ${status}`;
-    return `<circle class="tk-hit" cx="${x.toFixed(1)}" cy="${y}" r="11"
-        tabindex="0" role="button" data-node-info="${info}"
-      ></circle>
-            <circle class="tk-node ${cls}" cx="${x.toFixed(1)}" cy="${y}" r="${r}" data-node-info="${info}"><title>${info}</title></circle>
-            <text class="tk-label" x="${x.toFixed(1)}" y="${y + 20}">${dateShort.format(new Date(`${d.date}T12:00:00`))}</text>`;
+  const W = 900, H = 190, padX = 42;
+  const pts = idx.map((di, i) => {
+    const t = idx.length === 1 ? 0.5 : i / (idx.length - 1);
+    return {
+      x: padX + t * (W - padX * 2),
+      y: 104 - Math.sin(t * Math.PI * 1.6) * 42,
+      dep: deps[di],
+      i,
+    };
   });
 
-  els.routeSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  els.routeSvg.innerHTML = `
-    <line class="tk-line" x1="${padX}" y1="${y}" x2="${W - padX}" y2="${y}" />
-    ${nodes.join("")}`;
-}
+  const smooth = (points) => {
+    if (points.length < 2) return "";
+    let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i - 1] || points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2] || p2;
+      const c1x = p1.x + (p2.x - p0.x) / 6;
+      const c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6;
+      const c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+  };
 
+  let lastDone = -1;
+  pts.forEach((p, i) => { if (p.dep.paid) lastDone = i; });
+  const donePath = lastDone > 0 ? smooth(pts.slice(0, lastDone + 1)) : "";
+
+  const nodes = pts.map((p) => {
+    const done = p.dep.paid;
+    const isNext = !done && p.dep.id === st.next?.id;
+    const cls = done ? "route-node done" : isNext ? "route-node next" : "route-node";
+    const r = isNext ? 9 : done ? 7.5 : 6;
+    const label = dateShort.format(new Date(`${p.dep.date}T12:00:00`));
+    return `
+      <g class="route-group">
+        <circle class="${cls}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}"
+          style="animation: cardIn 500ms var(--ease) ${p.i * 45}ms backwards">
+          <title>Depósito ${p.dep.number} — ${currency.format(p.dep.amount)} — ${done ? "concluído" : "pendente"}</title>
+        </circle>
+        <text class="route-label" x="${p.x.toFixed(1)}" y="${(p.y + 26).toFixed(1)}">${label}</text>
+        ${isNext ? `<circle class="route-pin" cx="${p.x.toFixed(1)}" cy="${(p.y - 20).toFixed(1)}" r="3.5"><animate attributeName="cy" values="${(p.y - 20).toFixed(1)};${(p.y - 26).toFixed(1)};${(p.y - 20).toFixed(1)}" dur="1.8s" repeatCount="indefinite"/></circle>` : ""}
+      </g>`;
+  }).join("");
+
+  const end = pts.at(-1);
+  els.routeSvg.innerHTML = `
+    <path class="route-line" d="${smooth(pts)}" />
+    ${donePath ? `<path class="route-done" d="${donePath}" />` : ""}
+    ${nodes}
+    <g transform="translate(${(end.x + 14).toFixed(1)}, ${(end.y - 34).toFixed(1)})">
+      <path class="route-flag" d="M0 26V0l14 5.4L0 11z" />
+    </g>
+    <text class="route-label" x="${padX}" y="18" style="text-anchor:start">Início</text>
+    <text class="route-label" x="${W - padX}" y="18" style="text-anchor:end">Meta</text>
+  `;
+}
 
 /* plano + gráfico */
 function renderPlan() {
@@ -737,45 +760,6 @@ function renderHistory() {
 
 let chartPoints = [];
 let chartW = 0;
-
-/* versão enxuta do gráfico para o cartão da tela inicial: sem eixos,
-   sem rótulos, só as duas linhas. O gráfico completo fica em Plano. */
-function renderMiniChart() {
-  const goal = state.goal;
-  const svg = els.miniChart;
-  const W = Math.max(240, Math.round(svg.parentElement.getBoundingClientRect().width) || 320);
-  const H = 130, padY = 10;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-
-  const max = goal.targetAmount || 1;
-  const n = goal.deposits.length;
-  const xAt = (i) => (n <= 1 ? W / 2 : (i / (n - 1)) * W);
-  const yAt = (v) => H - padY - (Math.min(v, max) / max) * (H - padY * 2);
-
-  let planned = goal.currentAmount;
-  let real = goal.currentAmount;
-  let ultimoPago = -1;
-  const planPts = [];
-  const realPts = [];
-
-  goal.deposits.forEach((d, i) => {
-    planned += d.amount;
-    if (d.paid) { real += d.paidAmount || d.amount; ultimoPago = i; }
-    planPts.push([xAt(i), yAt(planned)]);
-    if (i <= ultimoPago) realPts.push([xAt(i), yAt(real)]);
-  });
-
-  const linha = (pts) => pts.map((p, i) => `${i ? "L" : "M"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-  const fim = realPts.at(-1);
-
-  svg.innerHTML = `
-    <line class="grid-line" x1="0" y1="${padY}" x2="${W}" y2="${padY}" />
-    <line class="grid-line" x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" />
-    <line class="grid-line" x1="0" y1="${H - padY}" x2="${W}" y2="${H - padY}" />
-    <path class="s2-line" d="${linha(planPts)}" />
-    ${realPts.length > 1 ? `<path class="s1-line" d="${linha(realPts)}" />` : ""}
-    ${fim ? `<circle class="chart-dot" cx="${fim[0].toFixed(1)}" cy="${fim[1].toFixed(1)}" r="4.5" fill="var(--viz-1)" />` : ""}`;
-}
 
 function renderChart() {
   const goal = state.goal;
@@ -1017,8 +1001,7 @@ function renderGoals() {
     return `
       <article class="goal-card ${active ? "is-active" : ""}" style="animation-delay:${i * 70}ms">
         <div class="goal-top">
-          <span class="ic ${goal.reason || "reserva"}">${motivoSvg(goal.reason)}</span>
-          <div style="flex:1;min-width:0">
+          <div>
             <p class="eyebrow">${active ? "Meta ativa" : "Meta salva"}</p>
             <h3>${goal.name}</h3>
             <p class="amount">${currency.format(st.saved)} de ${currency.format(goal.targetAmount)}</p>
@@ -1271,8 +1254,6 @@ function showScreen(screen) {
   if (!["account", "goals"].includes(screen) && !state.goal) state.screen = "dashboard";
   if (screen !== "dashboard") state.editing = false;
   els.avatarMenu.classList.remove("is-open");
-  els.drawer.classList.remove("is-open");
-  els.drawerScrim.classList.remove("is-open");
   render();
   els.scroller.scrollTo({ top: 0, behavior: motionOff ? "auto" : "smooth" });
 }
@@ -1585,7 +1566,7 @@ function drawShareCard(goal, st) {
 
   x.fillStyle = "rgba(255,255,255,0.4)";
   x.font = "600 30px Inter, system-ui, sans-serif";
-  x.fillText("Poupaê", cx, S * 0.945);
+  x.fillText("Poupaê Aurora", cx, S * 0.945);
 
   return c;
 }
@@ -1625,12 +1606,7 @@ async function shareProgress() {
 /* O arquivo leva a conta (com o hash, nunca a senha em claro) e as
    metas. Assim, restaurar num aparelho novo devolve o login e os dados
    de uma vez — sem isso, os dados morrem presos a um navegador. */
-/* O marcador vai gravado dentro do arquivo de backup e é conferido na
-   importação. O app se chamava "Poupaê Aurora", então backups antigos
-   trazem o marcador velho — a importação aceita os dois, senão um
-   arquivo já exportado passaria a ser rejeitado. */
-const BACKUP_MARKER = "poupae";
-const BACKUP_MARKERS_ACEITOS = ["poupae", "poupae-aurora"];
+const BACKUP_MARKER = "poupae-aurora";
 
 function exportData() {
   const payload = {
@@ -1651,7 +1627,7 @@ function exportData() {
 }
 
 function importPayload(payload) {
-  if (!payload || !BACKUP_MARKERS_ACEITOS.includes(payload.app) || !payload.account?.email || !Array.isArray(payload.goals)) {
+  if (!payload || payload.app !== BACKUP_MARKER || !payload.account?.email || !Array.isArray(payload.goals)) {
     throw new Error("Esse arquivo não parece um backup do Poupaê.");
   }
   const email = String(payload.account.email).toLowerCase();
@@ -1808,77 +1784,6 @@ els.editGoalBtn.addEventListener("click", startEditGoal);
 els.logoutBtn.addEventListener("click", logout);
 els.payBtn.addEventListener("click", payNext);
 els.recalcBtn.addEventListener("click", recalculate);
-
-/* setas do topo: circulam entre as metas, como o seletor de mês da
-   referência circula entre meses */
-function cicloMeta(passo) {
-  if (state.goals.length < 2) return;
-  const i = state.goals.findIndex((g) => g.id === state.goal?.id);
-  const prox = (i + passo + state.goals.length) % state.goals.length;
-  openGoal(state.goals[prox].id);
-}
-els.prevGoalBtn.addEventListener("click", () => cicloMeta(-1));
-els.nextGoalBtn.addEventListener("click", () => cicloMeta(1));
-els.goPlanBtn.addEventListener("click", () => showScreen("plan"));
-els.goalSwitchBtn.addEventListener("click", () => showScreen("goals"));
-els.fabPay.addEventListener("click", payNext);
-
-/* Cada motivo ganha cor e desenho próprios, no lugar das categorias de
-   despesa da referência. O motivo já existia no Poupaê mas não aparecia
-   em lugar nenhum — agora identifica a meta de relance. */
-const MOTIVO_ICONE = {
-  reserva: '<path d="M12 3.5 5 6.5v5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9v-5z"/>',
-  viagem: '<path d="M10.5 19.5 12 14l7.5-2 1.5-2.5-3-1-3 2-5-1.4 1-1.6-1.5-.5-2.5 2.5-4 1.1v1.8l3.5 1.2-1 2.4-3-.4-.5 1.3 3.5 1.6z"/>',
-  compra: '<path d="M6 8h12l-1 11H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
-  divida: '<path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z"/><path d="M9.5 8.5h5M9.5 12h5"/>',
-  investimento: '<path d="M4 17 9.5 11l3.5 3.5L20 7"/><path d="M14.5 7H20v5.5"/>',
-  sonho: '<path d="M12 20s-7-4.4-7-9.2A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.8C19 15.6 12 20 12 20z"/>',
-};
-
-function motivoSvg(reason) {
-  const d = MOTIVO_ICONE[reason] || MOTIVO_ICONE.reserva;
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-}
-
-/* ── gaveta ──────────────────────────────────────────────── */
-const abrirGaveta = () => {
-  els.drawer.classList.add("is-open");
-  els.drawerScrim.classList.add("is-open");
-};
-const fecharGaveta = () => {
-  els.drawer.classList.remove("is-open");
-  els.drawerScrim.classList.remove("is-open");
-};
-els.drawerBtn.addEventListener("click", abrirGaveta);
-els.drawerScrim.addEventListener("click", fecharGaveta);
-
-/* ── abas do cabeçalho: guardado x falta ─────────────────── */
-els.topTabs.addEventListener("click", (event) => {
-  const btn = event.target.closest("[data-toptab]");
-  if (!btn) return;
-  state.topTab = btn.dataset.toptab;
-  $$("#topTabs .ttab").forEach((b) => b.classList.toggle("is-active", b === btn));
-  if (state.goal) {
-    const st = statsOf(state.goal);
-    els.topAmount.textContent = currency.format(state.topTab === "left" ? st.remaining : st.saved);
-  }
-});
-
-/* tocar numa faixa leva para Depósitos já filtrado */
-els.bucketRows.addEventListener("click", (event) => {
-  const li = event.target.closest("[data-bucket]");
-  if (!li) return;
-  state.filter = li.dataset.bucket;
-  $$("#depositFilter button").forEach((b) => b.classList.toggle("is-active", b.dataset.filter === state.filter));
-  showScreen("deposits");
-});
-
-/* toque num ponto da linha de marcos mostra o depósito num toast —
-   o <title> nativo do SVG não aparece em toque, só em hover de mouse */
-els.routeSvg.addEventListener("click", (event) => {
-  const node = event.target.closest("[data-node-info]");
-  if (node) toast(node.dataset.nodeInfo);
-});
 els.accountForm.addEventListener("submit", updateAccount);
 els.deleteAccountBtn.addEventListener("click", deleteAccount);
 
@@ -1918,14 +1823,6 @@ document.addEventListener("click", (event) => {
   const dep = event.target.closest("[data-dep]");
   if (dep) return toggleDeposit(dep.dataset.dep);
   if (event.target.closest("[data-new-goal]")) return startNewGoal();
-
-  // ações da gaveta que não são navegação de tela
-  const acao = event.target.closest("[data-drawer-action]");
-  if (acao) {
-    fecharGaveta();
-    if (acao.dataset.drawerAction === "recalc") return recalculate();
-    if (acao.dataset.drawerAction === "share") return shareProgress();
-  }
 });
 
 els.depositSearch.addEventListener("input", (e) => { state.search = e.target.value; renderDeposits(); });
@@ -2156,23 +2053,23 @@ $("#installHelp").addEventListener("click", (event) => {
   if (event.target.id === "installHelp") closeInstallHelp();
 });
 
-/* O service worker usa skipWaiting + clients.claim, entao a versao nova
-   assume o controle sozinha. So que a pagina ja carregada continua
-   exibindo o CSS e o JS que estao na memoria dela — e o app parece
-   "identico a antes" mesmo com tudo novo publicado. Recarregar quando o
-   controle troca fecha essa lacuna, sem depender de fechar o app a mao. */
 if ("serviceWorker" in navigator) {
+  /* O service worker usa skipWaiting + clients.claim, então a versão nova
+     assume o controle sozinha. Só que a página já carregada continua
+     exibindo o CSS e o JS que estão na memória dela — e o app parece
+     "idêntico a antes" mesmo com tudo novo publicado. Recarregar quando o
+     controle troca fecha essa lacuna, sem depender de fechar o app à mão. */
   const tinhaControlador = Boolean(navigator.serviceWorker.controller);
   let recarregando = false;
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    // na primeira visita nao havia controlador: trocar nao e atualizacao
+    // na primeira visita não havia controlador: trocar não é atualização
     if (!tinhaControlador || recarregando) return;
     recarregando = true;
     location.reload();
   });
 
-  // com o app aberto por muito tempo, procura versao nova de hora em hora
+  // com o app aberto por muito tempo, procura versão nova de hora em hora
   setInterval(() => {
     navigator.serviceWorker.getRegistration().then((reg) => reg && reg.update()).catch(() => {});
   }, 60 * 60 * 1000);
@@ -2193,13 +2090,6 @@ function applyLaunchScreen() {
     showScreen(wanted);
   }
 }
-
-/* Reforço redundante do CSS "svg { color-scheme: only dark }": o
-   atributo inline é o sinal mais forte contra o Tema escuro automático
-   do Android, que às vezes trata SVG à parte do resto da página. */
-[els.routeSvg, els.miniChart, els.planChart].forEach((svg) => {
-  if (svg) svg.style.colorScheme = "only dark";
-});
 
 /* ── inicialização ───────────────────────────────────────── */
 setDefaultDeadline();
