@@ -1,4 +1,4 @@
-# Poupaê Aurora
+# Poupaê
 
 App de metas financeiras. Você define quanto quer juntar e até quando; ele monta
 um plano de depósitos, mostra a rota com marcos, acompanha o progresso e libera
@@ -66,7 +66,7 @@ Para começar um repositório do zero:
 ```bash
 git init
 git add .
-git commit -m "Poupaê Aurora"
+git commit -m "Poupaê"
 git branch -M main
 git remote add origin https://github.com/SEU-USUARIO/poupae.git
 git push -u origin main
@@ -114,7 +114,7 @@ mudanças em código aparecem sozinhas na próxima abertura, sem passo extra.
 antigo:
 
 ```js
-const VERSION = "poupae-aurora-v7";
+const VERSION = "poupae-v25";
 ```
 
 No app já instalado no celular, a versão nova só assume quando **todas** as

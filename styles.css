@@ -1,5 +1,5 @@
 /* ============================================================
-   POUPAÊ AURORA — sistema visual
+   POUPAÊ — sistema visual
    ============================================================ */
 
 /* ── tokens ────────────────────────────────────────────── */
@@ -135,7 +135,7 @@ html, body {
 .menu::-webkit-scrollbar { display: none; }
 
 /* ── camadas de fundo ──────────────────────────────────── */
-.bg-aurora,
+.bg-glow,
 .bg-field,
 .bg-grid,
 .bg-grain,
@@ -146,7 +146,7 @@ html, body {
   z-index: 0;
 }
 
-.bg-aurora {
+.bg-glow {
   overflow: hidden;
   background:
     radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--series-1) 12%, transparent), transparent 60%),

@@ -1,5 +1,5 @@
 /* ============================================================
-   POUPAÊ AURORA — interface, render e motor de animação
+   POUPAÊ — interface, render e motor de animação
 
    O cálculo do plano fica em core.js, carregado antes deste
    arquivo. Aqui só entra o que depende de DOM, armazenamento
@@ -1566,7 +1566,7 @@ function drawShareCard(goal, st) {
 
   x.fillStyle = "rgba(255,255,255,0.4)";
   x.font = "600 30px Inter, system-ui, sans-serif";
-  x.fillText("Poupaê Aurora", cx, S * 0.945);
+  x.fillText("Poupaê", cx, S * 0.945);
 
   return c;
 }
@@ -1606,7 +1606,12 @@ async function shareProgress() {
 /* O arquivo leva a conta (com o hash, nunca a senha em claro) e as
    metas. Assim, restaurar num aparelho novo devolve o login e os dados
    de uma vez — sem isso, os dados morrem presos a um navegador. */
-const BACKUP_MARKER = "poupae-aurora";
+const BACKUP_MARKER = "poupae";
+
+/* Backups exportados quando o app se chamava "Poupaê Aurora" trazem o
+   marcador antigo. Aceitar os dois evita recusar um arquivo que a pessoa
+   já tem guardado — os novos saem só com "poupae". */
+const BACKUP_MARKERS_ACEITOS = [BACKUP_MARKER, "poupae-aurora"];
 
 function exportData() {
   const payload = {
@@ -1627,7 +1632,7 @@ function exportData() {
 }
 
 function importPayload(payload) {
-  if (!payload || payload.app !== BACKUP_MARKER || !payload.account?.email || !Array.isArray(payload.goals)) {
+  if (!payload || !BACKUP_MARKERS_ACEITOS.includes(payload.app) || !payload.account?.email || !Array.isArray(payload.goals)) {
     throw new Error("Esse arquivo não parece um backup do Poupaê.");
   }
   const email = String(payload.account.email).toLowerCase();

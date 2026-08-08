@@ -1,5 +1,5 @@
 /* ============================================================
-   POUPAÊ AURORA — núcleo de cálculo
+   POUPAÊ — núcleo de cálculo
 
    Só lógica pura: nada aqui toca no DOM, no localStorage ou em
    qualquer API do navegador. Fica separado para que a suíte de
