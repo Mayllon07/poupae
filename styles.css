@@ -1415,6 +1415,9 @@ kbd {
 .dock-item svg { width: 20px; height: 20px; transition: transform 400ms var(--ease-pop); }
 .dock-item b { font-size: 0.62rem; font-weight: 600; }
 .dock-item.is-active { color: var(--series-1); }
+/* traço do ícone ativo pintado pela imagem (a cor depois do url() é o
+   reserva, caso o pattern não resolva) */
+.dock-item.is-active svg * { stroke: url(#acentoMenta) var(--series-1); }
 .dock-item.is-active b {
   /* mesma defesa do .eyebrow: rótulo pintado por imagem */
   background-image: url("icons/acento/menta.png");

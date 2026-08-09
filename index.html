@@ -27,6 +27,16 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body data-palette="#0f9d6e,#6d4aff" data-mode="dark" class="is-booting">
+    <!-- pattern global: pinta traços de SVG com a imagem menta, imune ao
+         escurecimento forçado do celular (referenciado por url(#acentoMenta)) -->
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+      <defs>
+        <pattern id="acentoMenta" patternUnits="userSpaceOnUse" width="24" height="24">
+          <image href="icons/acento/menta.png" width="24" height="24" preserveAspectRatio="none" />
+        </pattern>
+      </defs>
+    </svg>
+
     <!-- ── camadas de fundo ───────────────────────────────── -->
     <div class="bg-glow" aria-hidden="true">
       <span class="blob b1"></span>
@@ -130,7 +140,7 @@
           <p class="form-note">
             Conta local no seu navegador.
             <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
-            <span class="app-version">v27</span>
+            <span class="app-version">v28</span>
           </p>
         </form>
       </section>
@@ -540,7 +550,7 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v27</span>
+              <span class="app-version">Poupaê v28</span>
             </div>
             <form id="accountForm" class="account glass">
               <label class="field">
