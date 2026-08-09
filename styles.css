@@ -2,6 +2,19 @@
    POUPAÊ — sistema visual
    ============================================================ */
 
+/* Fonte da marca. O nome interno do arquivo é "! PEPSI !"; apelidada
+   aqui para o CSS não depender dele. Usada só no nome do app — os
+   números e datas seguem em Inter, que é feita para ser lida.
+   "swap" e não "block": se o arquivo falhar, o nome aparece em Sora
+   na hora, em vez de ficar invisível esperando. */
+@font-face {
+  font-family: "Poupae Marca";
+  src: url("fonts/PEPSI_pl.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ── tokens ────────────────────────────────────────────── */
 :root {
   /* "only" recusa o escurecimento forçado do navegador (Tema escuro
@@ -306,7 +319,13 @@ p { margin: 0; }
 }
 
 .brand-text { display: grid; line-height: 1.15; }
-.brand-text b { font-size: 1.02rem; font-weight: 700; }
+/* o nome do app na fonte da marca; o resto da interface não muda */
+.brand-text b {
+  font-family: "Poupae Marca", Sora, Inter, system-ui, sans-serif;
+  font-size: 1.24rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
 .brand-text i {
   font-style: normal;
   font-size: 0.66rem;
@@ -315,7 +334,7 @@ p { margin: 0; }
   color: var(--ink-3);
 }
 .brand-lg .mark { width: 58px; height: 58px; border-radius: 18px; }
-.brand-lg .brand-text b { font-size: 1.3rem; }
+.brand-lg .brand-text b { font-size: 1.6rem; }
 .brand-sm .mark { width: 36px; height: 36px; border-radius: 12px; }
 
 /* ── botões ────────────────────────────────────────────── */
@@ -1763,10 +1782,12 @@ body.is-fechando-abertura .boot {
 
 .boot-word {
   display: flex;
-  font-family: Sora, Inter, system-ui, sans-serif;
-  font-size: clamp(2.6rem, 13vw, 5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: "Poupae Marca", Sora, Inter, system-ui, sans-serif;
+  /* a fonte da marca desenha alto e estreito: pede corpo maior e um
+     respiro entre as letras que o Sora não precisava */
+  font-size: clamp(3rem, 15vw, 5.8rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
   color: var(--ink);
 }
 .boot-word span {

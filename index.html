@@ -24,6 +24,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <!-- a fonte da marca é a primeira coisa que aparece, na abertura:
+         carregada aqui para não trocar de tipografia no meio da animação.
+         "crossorigin" é exigido em preload de fonte mesmo na mesma origem. -->
+    <link rel="preload" href="fonts/PEPSI_pl.ttf" as="font" type="font/ttf" crossorigin />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body data-palette="#0f9d6e,#6d4aff" data-mode="dark" class="is-booting">
@@ -135,7 +139,7 @@
           <p class="form-note">
             Conta local no seu navegador.
             <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
-            <span class="app-version">v35</span>
+            <span class="app-version">v36</span>
           </p>
         </form>
       </section>
@@ -562,7 +566,7 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v35</span>
+              <span class="app-version">Poupaê v36</span>
             </div>
             <form id="accountForm" class="account glass">
               <label class="field">
