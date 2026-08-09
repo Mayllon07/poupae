@@ -421,7 +421,7 @@ p { margin: 0; }
 }
 .field > select { appearance: none; padding-right: 38px; cursor: pointer; }
 .field > select option { background: var(--surface-1); color: var(--ink); }
-.field:has(select)::after {
+.field:has(select:not(.picker-nativo))::after {
   content: "";
   position: absolute;
   right: 16px; top: 26px;
@@ -467,6 +467,246 @@ p { margin: 0; }
 }
 .field-inline > input { padding: 15px 14px 9px; font-size: 0.88rem; }
 .field-inline > span { top: 12px; font-size: 0.85rem; }
+
+/* ── seletores próprios (motivo e data) ─────────────────────
+   A lista do <select> e o calendário do <input type="date"> são
+   desenhados pelo sistema e nenhum CSS os alcança. Então o controle
+   nativo vira apenas o guardador do valor — invisível, fora da ordem
+   de tabulação — e a interface visível é construída aqui. Assim
+   readForm() e o reset() do formulário seguem funcionando sem mudança. */
+.picker-nativo {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.picker { position: relative; }
+.picker-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 21px 38px 9px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-brd);
+  background: color-mix(in srgb, var(--surface-1) 42%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.94rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 240ms var(--ease), background 240ms var(--ease);
+}
+.picker-btn:hover { border-color: color-mix(in srgb, var(--series-1) 30%, transparent); }
+.picker-btn:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--series-1) 55%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--series-1) 14%, transparent);
+}
+.picker.is-open .picker-btn { border-color: color-mix(in srgb, var(--series-1) 55%, transparent); }
+
+.picker-lab {
+  position: absolute;
+  left: 15px; top: 15px;
+  font-size: 0.92rem;
+  color: var(--series-1);
+  pointer-events: none;
+  transform: translateY(-9px) scale(0.76);
+  transform-origin: left top;
+}
+.picker-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-sub { font-size: 0.78rem; color: var(--ink-3); white-space: nowrap; }
+.picker-chev {
+  position: absolute;
+  right: 16px; top: 24px;
+  width: 8px; height: 8px;
+  border-right: 2px solid var(--ink-3);
+  border-bottom: 2px solid var(--ink-3);
+  transform: rotate(45deg);
+  transition: transform 240ms var(--ease), border-color 240ms var(--ease);
+  pointer-events: none;
+}
+.picker.is-open .picker-chev { transform: rotate(-135deg) translate(-3px, -3px); border-color: var(--series-1); }
+
+.picker-ic {
+  width: 26px; height: 26px;
+  flex: none;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  background-image: linear-gradient(var(--series-1), var(--series-1));
+  color: #04170f;
+}
+.picker-ic svg { width: 14px; height: 14px; }
+
+.picker-panel {
+  position: absolute;
+  z-index: 40;
+  left: 0; right: 0; top: calc(100% + 7px);
+  padding: 7px;
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--series-1) 26%, transparent);
+  /* opaco de propósito: um painel flutuante não pode depender de
+     backdrop-filter, que falha justamente nos aparelhos mais fracos */
+  background: #0f1f1a;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+  animation: pickerIn 200ms var(--ease-pop);
+}
+@keyframes pickerIn { from { opacity: 0; transform: translateY(-8px); } }
+.picker-panel[hidden] { display: none; }
+
+.picker-opt {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms var(--ease);
+}
+.picker-opt:hover, .picker-opt:focus-visible { background: var(--glass-soft); outline: none; }
+.picker-opt .ic {
+  width: 30px; height: 30px;
+  flex: none;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  background-image: linear-gradient(color-mix(in srgb, var(--series-1) 15%, transparent), color-mix(in srgb, var(--series-1) 15%, transparent));
+  color: var(--series-1);
+}
+.picker-opt .ic svg { width: 16px; height: 16px; }
+.picker-opt .txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.picker-opt .txt small { font-size: 0.72rem; color: var(--ink-3); }
+.picker-opt .tick { color: var(--series-1); font-size: 0.95rem; }
+.picker-opt[aria-selected="true"] {
+  background-image: linear-gradient(color-mix(in srgb, var(--series-1) 15%, transparent), color-mix(in srgb, var(--series-1) 15%, transparent));
+}
+.picker-opt[aria-selected="true"] .ic {
+  background-image: linear-gradient(var(--series-1), var(--series-1));
+  color: #04170f;
+}
+
+/* ── calendário ─────────────────────────────────────────── */
+.cal { padding: 13px; }
+.cal-atalhos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 13px; }
+.cal-atalho {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-brd);
+  background: var(--glass-soft);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: background 160ms var(--ease), color 160ms var(--ease);
+}
+.cal-atalho:hover { color: var(--ink); }
+.cal-atalho.is-active {
+  border-color: transparent;
+  background-image: linear-gradient(var(--series-1), var(--series-1));
+  color: #04170f;
+  font-weight: 600;
+}
+
+.cal-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cal-top b { font-size: 0.92rem; font-weight: 600; }
+.cal-nav { display: flex; gap: 4px; }
+.cal-nav button {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  border: 1px solid var(--glass-brd);
+  background: var(--glass-soft);
+  color: var(--ink-2);
+  font: inherit;
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.cal-nav button:hover { color: var(--series-1); border-color: color-mix(in srgb, var(--series-1) 38%, transparent); }
+
+.cal-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.cal-grade > span {
+  padding: 5px 0;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.cal-grade > button {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 140ms var(--ease);
+}
+.cal-grade > button:hover:not(:disabled) { background: var(--glass-soft); }
+.cal-grade > button.is-fora { color: var(--ink-3); opacity: 0.42; }
+.cal-grade > button:disabled { opacity: 0.25; cursor: not-allowed; }
+.cal-grade > button.is-hoje { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--series-1) 45%, transparent); }
+.cal-grade > button.is-sel {
+  background-image: linear-gradient(var(--series-1), var(--series-1));
+  color: #04170f;
+  font-weight: 700;
+}
+.cal-pe {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--glass-brd);
+  font-size: 0.76rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+.cal-pe b { color: var(--series-1); font-weight: 600; }
+
+/* ── frequência: três opções lado a lado ────────────────── */
+.freq { position: relative; display: grid; gap: 9px; }
+.freq-lab { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--series-1); }
+.freq-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.freq-opt {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 13px 8px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface-1) 42%, transparent);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 200ms var(--ease), background 200ms var(--ease);
+}
+.freq-opt:hover { border-color: color-mix(in srgb, var(--series-1) 34%, transparent); }
+.freq-opt:focus-visible { outline: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--series-1) 14%, transparent); }
+.freq-opt .ic {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  background-image: linear-gradient(color-mix(in srgb, var(--series-1) 15%, transparent), color-mix(in srgb, var(--series-1) 15%, transparent));
+  color: var(--series-1);
+}
+.freq-opt .ic svg { width: 16px; height: 16px; }
+.freq-opt b { font-size: 0.86rem; font-weight: 600; }
+.freq-opt small { font-size: 0.7rem; color: var(--ink-3); }
+.freq-opt[aria-checked="true"] {
+  border-color: color-mix(in srgb, var(--series-1) 45%, transparent);
+  background-image: linear-gradient(color-mix(in srgb, var(--series-1) 12%, transparent), color-mix(in srgb, var(--series-1) 12%, transparent));
+}
+.freq-opt[aria-checked="true"] .ic {
+  background-image: linear-gradient(var(--series-1), var(--series-1));
+  color: #04170f;
+}
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 

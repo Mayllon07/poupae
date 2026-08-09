@@ -139,7 +139,7 @@
           <p class="form-note">
             Conta local no seu navegador.
             <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
-            <span class="app-version">v30</span>
+            <span class="app-version">v31</span>
           </p>
         </form>
       </section>
@@ -262,8 +262,10 @@
                     <span>Já tem guardado? (R$)</span>
                   </label>
                 </div>
-                <label class="field">
-                  <select id="goalReason">
+                <!-- O <select> continua sendo a fonte da verdade (o resto do app
+                     lê .value dele); a interface visível é construída por cima. -->
+                <div class="field picker" id="reasonField">
+                  <select id="goalReason" class="picker-nativo" tabindex="-1" aria-hidden="true">
                     <option value="reserva">Reserva de emergência</option>
                     <option value="viagem">Viagem</option>
                     <option value="compra">Compra importante</option>
@@ -271,23 +273,39 @@
                     <option value="investimento">Investimento</option>
                     <option value="sonho">Sonho pessoal</option>
                   </select>
-                  <span>Motivo</span>
-                </label>
+                  <button id="reasonBtn" class="picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="reasonLab reasonTxt">
+                    <span id="reasonIc" class="picker-ic" aria-hidden="true"></span>
+                    <span id="reasonTxt" class="picker-txt">Reserva de emergência</span>
+                    <i class="picker-chev" aria-hidden="true"></i>
+                  </button>
+                  <span id="reasonLab" class="picker-lab">Motivo</span>
+                  <div id="reasonPanel" class="picker-panel" role="listbox" aria-labelledby="reasonLab" hidden></div>
+                </div>
               </div>
 
               <div class="panel" data-panel="2">
-                <label class="field">
-                  <input id="deadline" type="date" required />
-                  <span>Data limite</span>
-                </label>
-                <label class="field">
-                  <select id="frequency">
+                <!-- o "required" saiu porque o campo nativo fica oculto: quem
+                     cobra a data é a validação em JS, que já existia -->
+                <div class="field picker" id="deadlineField">
+                  <input id="deadline" class="picker-nativo" type="date" tabindex="-1" aria-hidden="true" />
+                  <button id="deadlineBtn" class="picker-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-labelledby="deadlineLab deadlineTxt">
+                    <span id="deadlineTxt" class="picker-txt">Escolher data</span>
+                    <small id="deadlineSub" class="picker-sub"></small>
+                    <i class="picker-chev" aria-hidden="true"></i>
+                  </button>
+                  <span id="deadlineLab" class="picker-lab">Data limite</span>
+                  <div id="deadlinePanel" class="picker-panel cal" role="dialog" aria-label="Escolher data limite" hidden></div>
+                </div>
+
+                <div class="freq">
+                  <span id="freqLab" class="freq-lab">Frequência dos depósitos</span>
+                  <select id="frequency" class="picker-nativo" tabindex="-1" aria-hidden="true">
                     <option value="weekly">Semanal</option>
                     <option value="daily">Diária</option>
                     <option value="monthly">Mensal</option>
                   </select>
-                  <span>Frequência dos depósitos</span>
-                </label>
+                  <div id="freqGrid" class="freq-grid" role="radiogroup" aria-labelledby="freqLab"></div>
+                </div>
                 <div class="hintbox" id="freqHint">Escolha a data e veja quantos depósitos o plano terá.</div>
               </div>
 
@@ -548,7 +566,7 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v30</span>
+              <span class="app-version">Poupaê v31</span>
             </div>
             <form id="accountForm" class="account glass">
               <label class="field">

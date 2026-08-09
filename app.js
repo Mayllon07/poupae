@@ -63,6 +63,17 @@ const els = {
   deadline: $("#deadline"),
   frequency: $("#frequency"),
   freqHint: $("#freqHint"),
+  reasonField: $("#reasonField"),
+  reasonBtn: $("#reasonBtn"),
+  reasonIc: $("#reasonIc"),
+  reasonTxt: $("#reasonTxt"),
+  reasonPanel: $("#reasonPanel"),
+  deadlineField: $("#deadlineField"),
+  deadlineBtn: $("#deadlineBtn"),
+  deadlineTxt: $("#deadlineTxt"),
+  deadlineSub: $("#deadlineSub"),
+  deadlinePanel: $("#deadlinePanel"),
+  freqGrid: $("#freqGrid"),
   monthlyCapacity: $("#monthlyCapacity"),
   stepBack: $("#stepBack"),
   stepNext: $("#stepNext"),
@@ -1051,6 +1062,304 @@ function renderPreview() {
   els.freqHint.textContent = data.deadline
     ? `Esse prazo gera ${periods} depósitos ${freqPlural(data.frequency)}.`
     : "Escolha a data e veja quantos depósitos o plano terá.";
+
+  sincronizarSeletores();
+}
+
+/* ── seletores próprios ────────────────────────────────────
+   A lista que o <select> abre e o calendário do <input type="date">
+   são desenhados pelo sistema: nenhum CSS os alcança, e no celular
+   destoavam completamente do app. Aqui o controle nativo deixa de
+   aparecer e passa a ser só o guardador do valor — quem desenha é
+   este módulo.
+
+   Toda escrita passa por escreverNativo(), que dispara "change" no
+   campo original. Como o formulário já escutava "change" para chamar
+   renderPreview, e renderPreview termina chamando sincronizarSeletores,
+   qualquer caminho que mude o valor (inclusive reset() e "usar
+   exemplo", que nem sabem que este módulo existe) repinta sozinho. */
+
+const svgIc = (miolo) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${miolo}</svg>`;
+
+const MOTIVO_INFO = {
+  reserva: {
+    desc: "Um colchão para imprevistos",
+    ic: '<path d="M12 3l7.5 3.6v5c0 4.4-3.1 8.3-7.5 9.4-4.4-1.1-7.5-5-7.5-9.4v-5z"/>',
+  },
+  viagem: {
+    desc: "Passagem, hospedagem e passeios",
+    ic: '<path d="M2 16l20-7-7 20-3-8z"/>',
+  },
+  compra: {
+    desc: "Aquele item que vale planejar",
+    ic: '<path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M6 6L5 2H2"/>',
+  },
+  divida: {
+    desc: "Sair do vermelho com data marcada",
+    ic: '<path d="M20 7H4m0 0l4-4M20 17H4m16 0l-4 4"/>',
+  },
+  investimento: {
+    desc: "Dinheiro que trabalha por você",
+    ic: '<polyline points="3 17 9.5 10.5 13.5 14.5 21 6"/><polyline points="14.5 6 21 6 21 12.5"/>',
+  },
+  sonho: {
+    desc: "Aquilo que você adia há tempo",
+    ic: '<path d="M12 3.4l2.6 5.4 5.9.8-4.2 4.2 1 5.9L12 17l-5.3 2.7 1-5.9-4.2-4.2 5.9-.8z"/>',
+  },
+};
+
+/* ordem de exibição — a do <select> é outra, e tudo bem */
+const FREQ_INFO = [
+  { valor: "daily", rotulo: "Diária", ic: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>' },
+  { valor: "weekly", rotulo: "Semanal", ic: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M8 3v3M16 3v3"/>' },
+  { valor: "monthly", rotulo: "Mensal", ic: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17"/>' },
+];
+
+const MESES_LONGOS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const INICIAIS_SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
+const ATALHOS_PRAZO = [
+  { meses: 3, rotulo: "3 meses" },
+  { meses: 6, rotulo: "6 meses" },
+  { meses: 12, rotulo: "1 ano" },
+  { meses: 24, rotulo: "2 anos" },
+];
+
+/* monta o ISO a partir das partes locais: toISO() passa por UTC e
+   pode devolver o dia anterior dependendo do fuso */
+const isoDe = (ano, mes, dia) => `${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+const dataDeISO = (iso) => new Date(`${iso}T12:00:00`);
+const diasEntre = (isoA, isoB) => Math.round((dataDeISO(isoB) - dataDeISO(isoA)) / 86400000);
+
+function isoDaquiA(meses) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + meses);
+  return isoDe(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function textoPrazo(dias) {
+  if (dias < 45) return `em ${dias} ${dias === 1 ? "dia" : "dias"}`;
+  const meses = Math.round(dias / 30.44);
+  if (meses >= 12 && meses % 12 === 0) {
+    const anos = meses / 12;
+    return `em ${anos} ${anos === 1 ? "ano" : "anos"}`;
+  }
+  return `em ${meses} meses`;
+}
+
+function escreverNativo(campo, valor) {
+  if (campo.value === valor) return;
+  campo.value = valor;
+  campo.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/* ── painel flutuante (um de cada vez) ── */
+let painelAberto = null;
+
+function fecharPainel(devolverFoco) {
+  if (!painelAberto) return;
+  const { campo, painel, botao } = painelAberto;
+  painel.hidden = true;
+  campo.classList.remove("is-open");
+  botao.setAttribute("aria-expanded", "false");
+  painelAberto = null;
+  if (devolverFoco) botao.focus();
+}
+
+function abrirPainel(campo, painel, botao, montar) {
+  const jaEstava = painelAberto?.painel === painel;
+  fecharPainel();
+  if (jaEstava) return;
+  montar();
+  painel.hidden = false;
+  campo.classList.add("is-open");
+  botao.setAttribute("aria-expanded", "true");
+  painelAberto = { campo, painel, botao };
+  (painel.querySelector('[aria-selected="true"], .is-sel') || painel.querySelector("button:not(:disabled)"))?.focus();
+}
+
+addEventListener("pointerdown", (event) => {
+  if (painelAberto && !painelAberto.campo.contains(event.target)) fecharPainel();
+});
+/* na captura: com um painel aberto, Esc fecha ele antes de qualquer
+   outra coisa que também escute Esc */
+addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && painelAberto) {
+    event.stopPropagation();
+    fecharPainel(true);
+  }
+}, true);
+
+/* ── motivo ── */
+function pintarMotivo() {
+  const escolhida = els.goalReason.selectedOptions[0];
+  els.reasonTxt.textContent = escolhida ? escolhida.textContent : "Escolher";
+  els.reasonIc.innerHTML = svgIc(MOTIVO_INFO[els.goalReason.value]?.ic || "");
+}
+
+function montarMotivoPainel() {
+  const atual = els.goalReason.value;
+  els.reasonPanel.innerHTML = Array.from(els.goalReason.options)
+    .map((op) => {
+      const escolhido = op.value === atual;
+      const info = MOTIVO_INFO[op.value] || {};
+      return `
+        <button class="picker-opt" type="button" role="option" data-valor="${op.value}" aria-selected="${escolhido}">
+          <span class="ic">${svgIc(info.ic || "")}</span>
+          <span class="txt">${op.textContent}<small>${info.desc || ""}</small></span>
+          ${escolhido ? '<span class="tick" aria-hidden="true">✓</span>' : ""}
+        </button>`;
+    })
+    .join("");
+}
+
+els.reasonBtn.addEventListener("click", () =>
+  abrirPainel(els.reasonField, els.reasonPanel, els.reasonBtn, montarMotivoPainel)
+);
+els.reasonPanel.addEventListener("click", (event) => {
+  const opcao = event.target.closest(".picker-opt");
+  if (!opcao) return;
+  escreverNativo(els.goalReason, opcao.dataset.valor);
+  fecharPainel(true);
+});
+
+/* ── data limite ── */
+let mesDoCalendario = null;
+
+function pintarPrazo() {
+  const iso = els.deadline.value;
+  if (!iso) {
+    els.deadlineTxt.textContent = "Escolher data";
+    els.deadlineSub.textContent = "";
+    return;
+  }
+  els.deadlineTxt.textContent = fmtDate(iso);
+  const dias = diasEntre(todayISO(), iso);
+  els.deadlineSub.textContent = dias > 0 ? `· ${textoPrazo(dias)}` : "· prazo vencido";
+}
+
+function montarCalendario() {
+  const ano = mesDoCalendario.getFullYear();
+  const mes = mesDoCalendario.getMonth();
+  const escolhido = els.deadline.value;
+  const hoje = todayISO();
+
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const diasNoAnterior = new Date(ano, mes, 0).getDate();
+  const desloc = new Date(ano, mes, 1).getDay(); // 0 = domingo
+
+  const celulas = [];
+  for (let i = desloc; i > 0; i--) celulas.push({ dia: diasNoAnterior - i + 1, mes: mes - 1, fora: true });
+  for (let d = 1; d <= diasNoMes; d++) celulas.push({ dia: d, mes, fora: false });
+  for (let d = 1; celulas.length % 7; d++) celulas.push({ dia: d, mes: mes + 1, fora: true });
+
+  /* deixa o Date resolver a virada de ano dos dias vizinhos */
+  const isoDaCelula = (c) => {
+    const x = new Date(ano, c.mes, c.dia);
+    return isoDe(x.getFullYear(), x.getMonth(), x.getDate());
+  };
+
+  const atalhos = ATALHOS_PRAZO.map((a) => {
+    const iso = isoDaquiA(a.meses);
+    return `<button type="button" class="cal-atalho${iso === escolhido ? " is-active" : ""}" data-iso="${iso}">${a.rotulo}</button>`;
+  }).join("");
+
+  const grade =
+    INICIAIS_SEMANA.map((s) => `<span>${s}</span>`).join("") +
+    celulas
+      .map((c) => {
+        const iso = isoDaCelula(c);
+        const classes = [c.fora ? "is-fora" : "", iso === escolhido ? "is-sel" : "", iso === hoje ? "is-hoje" : ""]
+          .filter(Boolean)
+          .join(" ");
+        /* o prazo precisa ser no futuro: hoje e o passado ficam à vista, mas travados */
+        const travado = iso <= hoje ? " disabled" : "";
+        return `<button type="button" class="${classes}" data-iso="${iso}"${travado}>${c.dia}</button>`;
+      })
+      .join("");
+
+  let pe = "Escolha uma data para ver o efeito no plano.";
+  if (escolhido) {
+    const dias = Math.max(0, diasEntre(hoje, escolhido));
+    const n = countPeriods(hoje, escolhido, els.frequency.value);
+    pe = `Faltam <b>${dias} dias</b> · gera <b>${n} depósitos ${freqPlural(els.frequency.value)}</b>`;
+  }
+
+  els.deadlinePanel.innerHTML = `
+    <div class="cal-atalhos">${atalhos}</div>
+    <div class="cal-top">
+      <b>${MESES_LONGOS[mes]} de ${ano}</b>
+      <span class="cal-nav">
+        <button type="button" data-mes="-1" aria-label="Mês anterior">‹</button>
+        <button type="button" data-mes="1" aria-label="Próximo mês">›</button>
+      </span>
+    </div>
+    <div class="cal-grade">${grade}</div>
+    <div class="cal-pe">${pe}</div>`;
+}
+
+els.deadlineBtn.addEventListener("click", () => {
+  const base = els.deadline.value ? dataDeISO(els.deadline.value) : new Date();
+  mesDoCalendario = new Date(base.getFullYear(), base.getMonth(), 1);
+  abrirPainel(els.deadlineField, els.deadlinePanel, els.deadlineBtn, montarCalendario);
+});
+
+els.deadlinePanel.addEventListener("click", (event) => {
+  const navegar = event.target.closest("[data-mes]");
+  if (navegar) {
+    mesDoCalendario.setMonth(mesDoCalendario.getMonth() + Number(navegar.dataset.mes));
+    montarCalendario();
+    els.deadlinePanel.querySelector(`[data-mes="${navegar.dataset.mes}"]`)?.focus();
+    return;
+  }
+  const dia = event.target.closest("[data-iso]");
+  if (!dia || dia.disabled) return;
+  escreverNativo(els.deadline, dia.dataset.iso);
+  fecharPainel(true);
+});
+
+/* ── frequência ── */
+function pintarFrequencia() {
+  const atual = els.frequency.value;
+  const prazo = els.deadline.value;
+  const tinhaFoco = els.freqGrid.contains(document.activeElement);
+
+  els.freqGrid.innerHTML = FREQ_INFO.map((f) => {
+    const marcado = f.valor === atual;
+    const n = prazo ? countPeriods(todayISO(), prazo, f.valor) : 0;
+    const legenda = prazo ? `${n} ${n === 1 ? "depósito" : "depósitos"}` : "escolha a data";
+    return `
+      <button class="freq-opt" type="button" role="radio" data-valor="${f.valor}"
+              aria-checked="${marcado}" tabindex="${marcado ? 0 : -1}">
+        <span class="ic">${svgIc(f.ic)}</span>
+        <b>${f.rotulo}</b>
+        <small>${legenda}</small>
+      </button>`;
+  }).join("");
+
+  /* innerHTML descarta o elemento focado: devolve o foco ao escolhido */
+  if (tinhaFoco) els.freqGrid.querySelector('[aria-checked="true"]')?.focus();
+}
+
+els.freqGrid.addEventListener("click", (event) => {
+  const opcao = event.target.closest(".freq-opt");
+  if (opcao) escreverNativo(els.frequency, opcao.dataset.valor);
+});
+
+els.freqGrid.addEventListener("keydown", (event) => {
+  const passo = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+  if (!passo) return;
+  event.preventDefault();
+  const i = FREQ_INFO.findIndex((f) => f.valor === els.frequency.value);
+  const proximo = FREQ_INFO[(i + passo + FREQ_INFO.length) % FREQ_INFO.length];
+  escreverNativo(els.frequency, proximo.valor);
+  els.freqGrid.querySelector('[aria-checked="true"]')?.focus();
+});
+
+function sincronizarSeletores() {
+  pintarMotivo();
+  pintarPrazo();
+  pintarFrequencia();
 }
 
 function goToStep(step) {
