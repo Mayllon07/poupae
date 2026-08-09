@@ -1739,38 +1739,48 @@ kbd {
   word-break: break-all;
 }
 
-/* ── esqueleto do primeiro quadro ──────────────────────── */
+/* ── abertura do app ───────────────────────────────────── */
 .boot {
   position: fixed;
   inset: 0;
   z-index: 60;
   display: none;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  width: min(1480px, 100%);
-  margin: 0 auto;
+  place-items: center;
+  /* opaco: cobre o app enquanto ele monta, sem deixar ver o salto */
+  background: linear-gradient(180deg, var(--page), var(--page-2));
 }
-body.is-booting .boot { display: flex; }
+body.is-booting .boot,
+body.is-fechando-abertura .boot { display: grid; }
 body.is-booting #scroller { visibility: hidden; }
 
-.sk {
-  border-radius: var(--r-lg);
-  background: linear-gradient(100deg, var(--glass-soft) 30%, color-mix(in srgb, var(--ink-3) 16%, transparent) 50%, var(--glass-soft) 70%);
-  background-size: 220% 100%;
-  border: 1px solid var(--glass-brd);
-  animation: skShimmer 1.5s linear infinite;
+/* a saída acontece depois de #scroller já estar visível, então a
+   abertura desaparece por cima do app pronto */
+body.is-fechando-abertura .boot {
+  pointer-events: none;
+  animation: bootSai 340ms var(--ease) forwards;
 }
-@keyframes skShimmer { to { background-position: -220% 0; } }
+@keyframes bootSai { to { opacity: 0; transform: scale(1.04); } }
 
-.boot-bar { height: 62px; border-radius: 999px; }
-.boot-hero { height: 210px; }
-.boot-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.boot-kpis span { height: 92px; border-radius: var(--r-md); }
-.boot-card { flex: 1; min-height: 160px; }
-
-@media (max-width: 620px) {
-  .boot-kpis { grid-template-columns: 1fr 1fr; }
+.boot-word {
+  display: flex;
+  font-family: Sora, Inter, system-ui, sans-serif;
+  font-size: clamp(2.6rem, 13vw, 5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.boot-word span {
+  display: inline-block;
+  /* "both" segura a letra escondida durante o próprio atraso, senão
+     todas apareceriam juntas antes de cada uma começar */
+  animation: letraSalta 640ms var(--ease-pop) both;
+  animation-delay: calc(var(--i) * 95ms);
+}
+@keyframes letraSalta {
+  0% { opacity: 0; transform: translateY(30px) scale(0.8); }
+  55% { opacity: 1; transform: translateY(-11px) scale(1.07); }
+  78% { transform: translateY(3px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
 }
 
 /* ── comparação de metas ───────────────────────────────── */

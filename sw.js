@@ -3,7 +3,7 @@
 
 /* Ao mudar a versão, atualize também os dois selos .app-version
    do index.html — são eles que revelam qual versão o aparelho roda. */
-const VERSION = "poupae-v34";
+const VERSION = "poupae-v35";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

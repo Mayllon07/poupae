@@ -2383,10 +2383,19 @@ goToStep(1);
 render();
 applyLaunchScreen();
 refreshInstallButton();
-/* O esqueleto some de forma síncrona: render() já montou o conteúdo.
-   Deixar isso num requestAnimationFrame era arriscado — em aba oculta
-   ou aparelho lento o quadro não vem, e o app ficaria invisível. */
-document.body.classList.remove("is-booting");
+/* A abertura mostra o nome com as letras saltando. Ela sai por
+   setTimeout, nunca por requestAnimationFrame: em aba oculta o quadro
+   não vem e o app ficaria invisível para sempre.
+   6 letras a cada 95ms mais 640ms da última = ~1,2s. */
+const ABERTURA_MS = motionOff ? 0 : 1180;
+setTimeout(() => {
+  /* solta o app primeiro e só então desvanece a abertura por cima: se o
+     segundo passo falhar, o app já está à mostra do mesmo jeito */
+  document.body.classList.remove("is-booting");
+  if (motionOff) return;
+  document.body.classList.add("is-fechando-abertura");
+  setTimeout(() => document.body.classList.remove("is-fechando-abertura"), 360);
+}, ABERTURA_MS);
 
 checkReminders();
 requestAnimationFrame(() => { moveGlider(); observeReveals(); });
