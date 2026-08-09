@@ -54,6 +54,18 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
+/* Os navegadores que escurecem à força (Samsung Internet, Tema escuro
+   automático do Android) decidem se o site "já tem modo escuro" procurando
+   regras prefers-color-scheme. Este bloco existe como esse sinal — os
+   valores são idênticos aos do :root, nada muda visualmente. */
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: only dark; }
+  body { background-color: #050d0a; color: #eaf5ef; }
+}
+
+/* SVG inline também é alvo do escurecimento forçado */
+svg { color-scheme: only dark; }
+
 * { box-sizing: border-box; }
 *::selection { background: color-mix(in srgb, var(--series-1) 32%, transparent); color: var(--ink); }
 
@@ -148,37 +160,50 @@ html, body {
 
 .bg-glow {
   overflow: hidden;
-  background:
-    radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--series-1) 12%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--page), var(--page-2));
+  background: linear-gradient(180deg, var(--page), var(--page-2));
+}
+/* brilho do topo como IMAGEM: o escurecimento forçado do celular apagava
+   os gradientes CSS do fundo, mas não toca em raster */
+.bg-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: min(64vh, 560px);
+  background: url("icons/acento/brilho-topo.png") top center / 130% 100% no-repeat;
+  opacity: 0.12;
 }
 
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.5;
+  /* a suavidade já vem desenhada na imagem: dispensa o blur() caro */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   will-change: transform;
 }
 
 .b1 {
   width: 44vw; height: 44vw; left: -8vw; top: -10vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--series-1) 70%, transparent), transparent 68%);
+  background-image: url("icons/acento/bolha-menta.png");
+  opacity: 0.35;
   animation: drift1 26s var(--ease) infinite alternate;
 }
 .b2 {
   width: 38vw; height: 38vw; right: -6vw; top: 4vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--series-2) 62%, transparent), transparent 68%);
+  background-image: url("icons/acento/bolha-violeta.png");
+  opacity: 0.31;
   animation: drift2 32s var(--ease) infinite alternate;
 }
 .b3 {
   width: 48vw; height: 48vw; left: 22vw; bottom: -22vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--series-1-soft) 52%, transparent), transparent 70%);
+  background-image: url("icons/acento/bolha-suave.png");
+  opacity: 0.26;
   animation: drift3 38s var(--ease) infinite alternate;
 }
 .b4 {
   width: 26vw; height: 26vw; right: 16vw; bottom: 4vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 42%, transparent), transparent 70%);
+  background-image: url("icons/acento/bolha-ouro.png");
+  opacity: 0.21;
   animation: drift2 44s var(--ease) infinite alternate-reverse;
 }
 
@@ -240,6 +265,12 @@ h3 { font-size: 1rem; font-weight: 600; }
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--series-1);
+  /* o texto é pintado por uma imagem da mesma cor: o escurecimento
+     forçado do celular reescreve cores CSS, mas nunca mexe em raster */
+  background-image: url("icons/acento/menta.png");
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .lede { color: var(--ink-2); font-size: 1.02rem; line-height: 1.6; max-width: 46ch; }
@@ -686,7 +717,9 @@ p { margin: 0; }
   height: 100%;
   width: 0%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--series-1), var(--series-1-soft));
+  /* imagem em vez de gradiente CSS: imune ao escurecimento forçado */
+  background: url("icons/acento/medidor.png") 0 0 / 100% 100% no-repeat,
+    linear-gradient(90deg, var(--series-1), var(--series-1-soft));
   transition: width 1.1s var(--ease);
 }
 
@@ -952,7 +985,8 @@ kbd {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(60% 120% at 88% 50%, color-mix(in srgb, var(--series-1) 12%, transparent), transparent 70%);
+  background: url("icons/acento/bolha-menta.png") 88% 50% / 75% 150% no-repeat;
+  opacity: 0.14;
   pointer-events: none;
 }
 .hero-copy { display: grid; gap: 9px; position: relative; z-index: 2; }
@@ -1377,6 +1411,13 @@ kbd {
 .dock-item svg { width: 20px; height: 20px; transition: transform 400ms var(--ease-pop); }
 .dock-item b { font-size: 0.62rem; font-weight: 600; }
 .dock-item.is-active { color: var(--series-1); }
+.dock-item.is-active b {
+  /* mesma defesa do .eyebrow: rótulo pintado por imagem */
+  background-image: url("icons/acento/menta.png");
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .dock-item.is-active svg { transform: translateY(-2px) scale(1.12); }
 .dock-glider {
   position: absolute;
@@ -1384,7 +1425,8 @@ kbd {
   top: 7px;
   height: calc(100% - 14px);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--series-1) 15%, transparent);
+  background: url("icons/acento/menta.png") 0 0 / 100% 100%;
+  opacity: 0.15;
   transition: transform 480ms var(--ease-pop), width 480ms var(--ease-pop);
 }
 

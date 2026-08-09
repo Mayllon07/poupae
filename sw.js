@@ -1,7 +1,7 @@
 /* Poupaê — service worker
    Deixa o app instalável e funcionando offline. */
 
-const VERSION = "poupae-v25";
+const VERSION = "poupae-v26";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -18,6 +18,14 @@ const SHELL = [
   "./icons/icon-maskable-192.png",
   "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png",
+  "./icons/acento/anel.png",
+  "./icons/acento/medidor.png",
+  "./icons/acento/menta.png",
+  "./icons/acento/bolha-menta.png",
+  "./icons/acento/bolha-violeta.png",
+  "./icons/acento/bolha-suave.png",
+  "./icons/acento/bolha-ouro.png",
+  "./icons/acento/brilho-topo.png",
 ];
 
 self.addEventListener("install", (event) => {

@@ -9,7 +9,7 @@
     <meta id="themeColor" name="theme-color" content="#050d0a" />
     <!-- app só escuro: avisa cedo, para o navegador não tentar
          reinterpretar as cores por conta própria -->
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="only dark" />
     <title>Poupaê — sua rota até a meta</title>
     <meta name="description" content="Transforme um valor distante numa rota de pequenos depósitos: plano calculado, marcos visuais e conquistas." />
 
@@ -337,11 +337,12 @@
                 <svg class="ring" viewBox="0 0 200 200" role="img" aria-labelledby="ringLabel">
                   <title id="ringLabel">Progresso da meta</title>
                   <defs>
-                    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-color="var(--series-1)" />
-                      <stop offset="55%" stop-color="var(--series-1-soft)" />
-                      <stop offset="100%" stop-color="var(--series-2)" />
-                    </linearGradient>
+                    <!-- o traço é pintado por uma IMAGEM com o gradiente, não por
+                         cores CSS: o escurecimento forçado do celular reescreve
+                         gradientes e SVG, mas nunca mexe em raster -->
+                    <pattern id="ringGrad" patternUnits="userSpaceOnUse" width="200" height="200">
+                      <image href="icons/acento/anel.png" width="200" height="200" preserveAspectRatio="none" />
+                    </pattern>
                   </defs>
                   <circle class="ring-track" cx="100" cy="100" r="84" />
                   <circle id="ringValue" class="ring-value" cx="100" cy="100" r="84" />
