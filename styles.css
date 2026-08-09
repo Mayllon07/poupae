@@ -9,7 +9,9 @@
    na hora, em vez de ficar invisível esperando. */
 @font-face {
   font-family: "Poupae Marca";
-  src: url("fonts/PEPSI_pl.ttf") format("truetype");
+  /* ?v=2: acento do Ê consertado dentro do arquivo — o sufixo fura
+     qualquer cache que ainda guarde a versão com o acento embaixo */
+  src: url("fonts/PEPSI_pl.ttf?v=2") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
