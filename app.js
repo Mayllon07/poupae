@@ -159,7 +159,6 @@ const els = {
   confirmCancel: $("#confirmCancel"),
   confetti: $("#confetti"),
   field: $("#fieldCanvas"),
-  spotlight: $("#spotlight"),
 };
 
 /* rede de segurança: se a inicialização falhar, o esqueleto não pode
@@ -340,21 +339,6 @@ const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el))
   resize();
   addEventListener("resize", resize);
   requestAnimationFrame(tick);
-})();
-
-/* luz que segue o cursor */
-(function spotlight() {
-  if (motionOff) return;
-  let tx = innerWidth / 2, ty = innerHeight * 0.3, cx = tx, cy = ty;
-  addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; }, { passive: true });
-  const loop = () => {
-    cx += (tx - cx) * 0.07;
-    cy += (ty - cy) * 0.07;
-    els.spotlight.style.setProperty("--mx", `${cx}px`);
-    els.spotlight.style.setProperty("--my", `${cy}px`);
-    requestAnimationFrame(loop);
-  };
-  loop();
 })();
 
 /* confete */
