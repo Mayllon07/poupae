@@ -1163,7 +1163,30 @@ function fecharPainel(devolverFoco) {
   campo.classList.remove("is-open");
   botao.setAttribute("aria-expanded", "false");
   painelAberto = null;
-  if (devolverFoco) botao.focus();
+  if (devolverFoco) botao.focus({ preventScroll: true });
+}
+
+/* Escolhe entre abrir para baixo ou para cima e limita a altura ao
+   espaço que existe de verdade: no celular o campo fica no pé da tela
+   e o painel inteiro caía fora dela. */
+function posicionarPainel(painel, botao) {
+  painel.classList.remove("abre-acima");
+  painel.style.maxHeight = "";
+
+  const folga = 16;
+  const caixa = botao.getBoundingClientRect();
+  const alturaCheia = painel.offsetHeight;
+  const dock = $(".dock");
+  const alturaDock = dock && getComputedStyle(dock).display !== "none" ? dock.offsetHeight + 14 : 0;
+
+  const abaixo = innerHeight - caixa.bottom - folga - alturaDock;
+  const acima = caixa.top - folga;
+
+  /* nada de altura mínima: se o espaço é pouco, o painel rola por
+     dentro — melhor do que vazar para fora da tela */
+  const paraCima = alturaCheia > abaixo && acima > abaixo;
+  painel.classList.toggle("abre-acima", paraCima);
+  painel.style.maxHeight = `${Math.max(0, Math.floor(paraCima ? acima : abaixo))}px`;
 }
 
 function abrirPainel(campo, painel, botao, montar) {
@@ -1175,12 +1198,20 @@ function abrirPainel(campo, painel, botao, montar) {
   campo.classList.add("is-open");
   botao.setAttribute("aria-expanded", "true");
   painelAberto = { campo, painel, botao };
-  (painel.querySelector('[aria-selected="true"], .is-sel') || painel.querySelector("button:not(:disabled)"))?.focus();
+  posicionarPainel(painel, botao);
+  /* preventScroll é essencial: sem ele o navegador rola a página para
+     revelar o item focado e desloca o painel que acabamos de posicionar */
+  (painel.querySelector('[aria-selected="true"], .is-sel') || painel.querySelector("button:not(:disabled)"))
+    ?.focus({ preventScroll: true });
 }
 
 addEventListener("pointerdown", (event) => {
   if (painelAberto && !painelAberto.campo.contains(event.target)) fecharPainel();
 });
+/* rolar a página levaria o painel junto com o campo, para fora da tela:
+   fecha. A rolagem de dentro do painel não chega aqui — ela fica contida
+   pelo overscroll-behavior e não borbulha. */
+$("#scroller")?.addEventListener("scroll", () => fecharPainel(), { passive: true });
 /* na captura: com um painel aberto, Esc fecha ele antes de qualquer
    outra coisa que também escute Esc */
 addEventListener("keydown", (event) => {
@@ -1309,7 +1340,9 @@ els.deadlinePanel.addEventListener("click", (event) => {
   if (navegar) {
     mesDoCalendario.setMonth(mesDoCalendario.getMonth() + Number(navegar.dataset.mes));
     montarCalendario();
-    els.deadlinePanel.querySelector(`[data-mes="${navegar.dataset.mes}"]`)?.focus();
+    /* meses com 6 semanas são mais altos que os de 5: reposiciona */
+    posicionarPainel(els.deadlinePanel, els.deadlineBtn);
+    els.deadlinePanel.querySelector(`[data-mes="${navegar.dataset.mes}"]`)?.focus({ preventScroll: true });
     return;
   }
   const dia = event.target.closest("[data-iso]");
@@ -1338,7 +1371,7 @@ function pintarFrequencia() {
   }).join("");
 
   /* innerHTML descarta o elemento focado: devolve o foco ao escolhido */
-  if (tinhaFoco) els.freqGrid.querySelector('[aria-checked="true"]')?.focus();
+  if (tinhaFoco) els.freqGrid.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
 }
 
 els.freqGrid.addEventListener("click", (event) => {
@@ -1353,7 +1386,7 @@ els.freqGrid.addEventListener("keydown", (event) => {
   const i = FREQ_INFO.findIndex((f) => f.valor === els.frequency.value);
   const proximo = FREQ_INFO[(i + passo + FREQ_INFO.length) % FREQ_INFO.length];
   escreverNativo(els.frequency, proximo.valor);
-  els.freqGrid.querySelector('[aria-checked="true"]')?.focus();
+  els.freqGrid.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
 });
 
 function sincronizarSeletores() {

@@ -544,6 +544,10 @@ p { margin: 0; }
   position: absolute;
   z-index: 40;
   left: 0; right: 0; top: calc(100% + 7px);
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
   padding: 7px;
   border-radius: var(--r-md);
   border: 1px solid color-mix(in srgb, var(--series-1) 26%, transparent);
@@ -555,6 +559,16 @@ p { margin: 0; }
 }
 @keyframes pickerIn { from { opacity: 0; transform: translateY(-8px); } }
 .picker-panel[hidden] { display: none; }
+.picker-panel::-webkit-scrollbar { display: none; }
+/* sem espaço embaixo (campo no pé da tela), o painel abre para cima */
+.picker-panel.abre-acima {
+  top: auto;
+  bottom: calc(100% + 7px);
+  /* nasce subindo a partir do campo, e não descendo: descer empurraria
+     o painel para fora da borda de cima da tela */
+  animation-name: pickerInAcima;
+}
+@keyframes pickerInAcima { from { opacity: 0; transform: translateY(8px); } }
 
 .picker-opt {
   display: flex;
@@ -1070,7 +1084,13 @@ kbd {
 
 /* ── ASSISTENTE DE META ────────────────────────────────── */
 .setup { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.85fr); gap: 18px; align-items: start; }
-.setup-card { padding: clamp(20px, 2.6vw, 32px); }
+/* O backdrop-filter de .glass cria um contexto de empilhamento, então o
+   z-index do painel flutuante não escapa deste cartão. Sem z-index aqui,
+   a prévia — que vem depois no HTML e também é .glass — desenhava por
+   cima do painel aberto. Com um painel aberto sobe ainda mais, para
+   passar também do dock (z-index 30). */
+.setup-card { padding: clamp(20px, 2.6vw, 32px); z-index: 2; }
+.setup-card:has(.picker.is-open) { z-index: 40; }
 .setup-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
 
 .steps { position: relative; display: flex; gap: 8px; margin-bottom: 24px; padding-bottom: 16px; }
