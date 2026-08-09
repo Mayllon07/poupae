@@ -3,7 +3,7 @@
 
 /* Ao mudar a versão, atualize também os dois selos .app-version
    do index.html — são eles que revelam qual versão o aparelho roda. */
-const VERSION = "poupae-v28";
+const VERSION = "poupae-v29";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -27,7 +27,6 @@ const SHELL = [
   "./icons/acento/bolha-violeta.png",
   "./icons/acento/bolha-suave.png",
   "./icons/acento/bolha-ouro.png",
-  "./icons/acento/brilho-topo.png",
 ];
 
 self.addEventListener("install", (event) => {

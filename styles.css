@@ -162,16 +162,6 @@ html, body {
   overflow: hidden;
   background: linear-gradient(180deg, var(--page), var(--page-2));
 }
-/* brilho do topo como IMAGEM: o escurecimento forçado do celular apagava
-   os gradientes CSS do fundo, mas não toca em raster */
-.bg-glow::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: min(64vh, 560px);
-  background: url("icons/acento/brilho-topo.png") top center / 130% 100% no-repeat;
-  opacity: 0.12;
-}
 
 .blob {
   position: absolute;
