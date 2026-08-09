@@ -1381,6 +1381,10 @@ kbd {
 .backup-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .backup-note:empty { display: none; }
 
+/* selo de versão: existe para descobrir na hora qual versão o
+   aparelho está rodando — o número acompanha o VERSION do sw.js */
+.app-version { font-size: 0.7rem; color: var(--ink-3); white-space: nowrap; }
+
 /* dock móvel */
 .dock {
   position: fixed;

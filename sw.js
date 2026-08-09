@@ -1,7 +1,9 @@
 /* Poupaê — service worker
    Deixa o app instalável e funcionando offline. */
 
-const VERSION = "poupae-v26";
+/* Ao mudar a versão, atualize também os dois selos .app-version
+   do index.html — são eles que revelam qual versão o aparelho roda. */
+const VERSION = "poupae-v27";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
