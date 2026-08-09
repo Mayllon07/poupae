@@ -169,7 +169,6 @@ const els = {
   confirmOk: $("#confirmOk"),
   confirmCancel: $("#confirmCancel"),
   confetti: $("#confetti"),
-  field: $("#fieldCanvas"),
 };
 
 /* rede de segurança: se a inicialização falhar, o esqueleto não pode
@@ -307,50 +306,6 @@ const revealer = new IntersectionObserver(
   { threshold: 0.12 }
 );
 const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el));
-
-/* campo de partículas */
-(function particleField() {
-  if (motionOff) return;
-  const cvs = els.field;
-  const ctx = cvs.getContext("2d");
-  let w, h, dots = [];
-
-  const resize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    w = cvs.width = innerWidth * dpr;
-    h = cvs.height = innerHeight * dpr;
-    cvs.style.width = `${innerWidth}px`;
-    cvs.style.height = `${innerHeight}px`;
-    const count = Math.round((innerWidth * innerHeight) / 26000);
-    dots = Array.from({ length: count }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: (Math.random() * 1.7 + 0.4) * dpr,
-      s: (Math.random() * 0.24 + 0.06) * dpr,
-      a: Math.random() * Math.PI * 2,
-      o: Math.random() * 0.45 + 0.12,
-    }));
-  };
-
-  const tick = () => {
-    ctx.clearRect(0, 0, w, h);
-    for (const d of dots) {
-      d.y -= d.s;
-      d.a += 0.008;
-      d.x += Math.sin(d.a) * 0.22;
-      if (d.y < -6) { d.y = h + 6; d.x = Math.random() * w; }
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(150,255,214,${d.o})`;
-      ctx.fill();
-    }
-    requestAnimationFrame(tick);
-  };
-
-  resize();
-  addEventListener("resize", resize);
-  requestAnimationFrame(tick);
-})();
 
 /* confete */
 function burstConfetti() {
