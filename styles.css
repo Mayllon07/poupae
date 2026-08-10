@@ -2,20 +2,12 @@
    POUPAÊ — sistema visual
    ============================================================ */
 
-/* Fonte da marca. O nome interno do arquivo é "! PEPSI !"; apelidada
-   aqui para o CSS não depender dele. Usada só no nome do app — os
-   números e datas seguem em Inter, que é feita para ser lida.
-   "swap" e não "block": se o arquivo falhar, o nome aparece em Sora
-   na hora, em vez de ficar invisível esperando. */
-@font-face {
-  font-family: "Poupae Marca";
-  /* ?v=2: acento do Ê consertado dentro do arquivo — o sufixo fura
-     qualquer cache que ainda guarde a versão com o acento embaixo */
-  src: url("fonts/PEPSI_pl.ttf?v=2") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* O nome do app não usa fonte carregada: é contorno vetorial embutido
+   no HTML (símbolo #marcaPoupae e o SVG da abertura), desenhado com a
+   Valve. A licença da Typodermic permite publicar o desenho ("logo",
+   "web page (not embedded)") mas proíbe publicar o arquivo da fonte
+   ("web page (embedded)"). De quebra, some o download da fonte e o
+   nome nunca aparece na tipografia errada enquanto ela carrega. */
 
 /* ── tokens ────────────────────────────────────────────── */
 :root {
@@ -232,8 +224,7 @@ html, body {
 /* ── tipografia ────────────────────────────────────────── */
 .display,
 .display-sm,
-h1, h2, h3,
-.brand-text b {
+h1, h2, h3 {
   font-family: Sora, Inter, system-ui, sans-serif;
   letter-spacing: -0.03em;
   margin: 0;
@@ -321,13 +312,8 @@ p { margin: 0; }
 }
 
 .brand-text { display: grid; line-height: 1.15; }
-/* o nome do app na fonte da marca; o resto da interface não muda */
-.brand-text b {
-  font-family: "Poupae Marca", Sora, Inter, system-ui, sans-serif;
-  font-size: 1.24rem;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-}
+/* o nome é desenho, não texto: a altura manda e a largura acompanha */
+.brand-svg { display: block; height: 20px; width: auto; color: var(--ink); }
 .brand-text i {
   font-style: normal;
   font-size: 0.66rem;
@@ -336,7 +322,7 @@ p { margin: 0; }
   color: var(--ink-3);
 }
 .brand-lg .mark { width: 58px; height: 58px; border-radius: 18px; }
-.brand-lg .brand-text b { font-size: 1.6rem; }
+.brand-lg .brand-svg { height: 27px; }
 .brand-sm .mark { width: 36px; height: 36px; border-radius: 12px; }
 
 /* ── botões ────────────────────────────────────────────── */
@@ -1782,27 +1768,28 @@ body.is-fechando-abertura .boot {
 }
 @keyframes bootSai { to { opacity: 0; transform: scale(1.04); } }
 
-.boot-word {
-  display: flex;
-  font-family: "Poupae Marca", Sora, Inter, system-ui, sans-serif;
-  /* a fonte da marca desenha alto e estreito: pede corpo maior e um
-     respiro entre as letras que o Sora não precisava */
-  font-size: clamp(3rem, 15vw, 5.8rem);
-  font-weight: 400;
-  letter-spacing: 0.02em;
+.boot-svg {
+  width: min(74vw, 480px);
+  height: auto;
   color: var(--ink);
+  overflow: visible; /* o salto sai da caixa do viewBox */
 }
-.boot-word span {
-  display: inline-block;
+.boot-svg .bl {
   /* "both" segura a letra escondida durante o próprio atraso, senão
      todas apareceriam juntas antes de cada uma começar */
   animation: letraSalta 640ms var(--ease-pop) both;
   animation-delay: calc(var(--i) * 95ms);
+  /* sem fill-box o giro/escala usariam a origem do SVG inteiro, e as
+     letras saltariam em arco em vez de no próprio eixo */
+  transform-box: fill-box;
+  transform-origin: center bottom;
 }
+/* deslocamento em % do próprio tamanho: funciona igual em qualquer
+   escala do SVG, ao contrário de pixels */
 @keyframes letraSalta {
-  0% { opacity: 0; transform: translateY(30px) scale(0.8); }
-  55% { opacity: 1; transform: translateY(-11px) scale(1.07); }
-  78% { transform: translateY(3px) scale(0.98); }
+  0% { opacity: 0; transform: translateY(34%) scale(0.8); }
+  55% { opacity: 1; transform: translateY(-13%) scale(1.07); }
+  78% { transform: translateY(4%) scale(0.98); }
   100% { opacity: 1; transform: none; }
 }
 

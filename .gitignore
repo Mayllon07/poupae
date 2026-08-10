@@ -1,0 +1,9 @@
+# Arquivos-fonte de tipografia: ficam só nesta máquina.
+#
+# A licença da Valve (Typodermic) permite "logo" e "web page (not
+# embedded)", mas proíbe "web page (embedded)" e "app (embedded)" —
+# ou seja, publicar o arquivo da fonte. O nome do app é publicado como
+# contorno vetorial (SVG), gerado a partir daqui; o .otf nunca sai.
+#
+# Para regerar o desenho, veja fonts/COMO-REGERAR.md
+fonts/

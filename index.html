@@ -24,10 +24,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <!-- a fonte da marca é a primeira coisa que aparece, na abertura:
-         carregada aqui para não trocar de tipografia no meio da animação.
-         "crossorigin" é exigido em preload de fonte mesmo na mesma origem. -->
-    <link rel="preload" href="fonts/PEPSI_pl.ttf?v=2" as="font" type="font/ttf" crossorigin />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body data-palette="#0f9d6e,#6d4aff" data-mode="dark" class="is-booting">
@@ -38,6 +34,13 @@
         <pattern id="acentoMenta" patternUnits="userSpaceOnUse" width="24" height="24">
           <image href="icons/acento/menta.png" width="24" height="24" preserveAspectRatio="none" />
         </pattern>
+        <!-- O nome do app é contorno vetorial, não texto numa fonte: a
+             licença da Valve permite publicar o desenho ("logo"), mas
+             proíbe publicar o arquivo da fonte. Gerado por
+             fonts/COMO-REGERAR.md — não edite estes caminhos à mão. -->
+        <symbol id="marcaPoupae" viewBox="0 0 4124 1082">
+          <path d="M173 844C255 844 271 837 271 796V631H501C676 631 704 585 704 382C704 176 675 136 501 136H79V796C79 838 97 844 173 844ZM271 302H443C501 302 510 317 510 394C510 467 502 484 443 484H271Z"/><path d="M1209 836C1351 836 1375 794 1375 569C1375 353 1353 304 1209 304H939C794 304 772 353 772 569C772 794 796 836 939 836ZM1129 454C1184 454 1192 476 1192 569C1192 667 1183 686 1129 686H1018C964 686 955 667 955 569C955 476 963 454 1018 454Z"/><path d="M1888 836C2032 836 2054 788 2054 572V343C2054 303 2037 296 1963 296C1885 296 1869 304 1869 343V572C1869 665 1862 686 1807 686H1708C1653 686 1646 665 1646 572V343C1646 304 1630 296 1552 296C1478 296 1461 303 1461 343V572C1461 788 1483 836 1627 836Z"/><path d="M2333 686V454H2505C2559 454 2568 473 2568 572C2568 665 2560 686 2505 686ZM2148 304V1006C2148 1046 2165 1052 2239 1052C2317 1052 2333 1045 2333 1006V836H2584C2728 836 2751 787 2751 572C2751 347 2727 304 2584 304Z"/><path d="M2881 304C2848 304 2843 317 2843 371C2843 427 2848 439 2881 439H3162C3206 439 3219 457 3223 524H2964C2861 524 2831 585 2831 684C2831 786 2871 836 2967 836H3400V572C3400 347 3376 304 3234 304ZM3029 714C3001 714 2990 702 2990 662C2990 625 3000 610 3028 610H3224V714Z"/><path d="M3653 304C3508 304 3486 353 3486 569C3486 794 3510 836 3653 836H4011C4044 836 4049 823 4049 770C4049 713 4043 701 4011 701H3725C3678 701 3665 683 3662 609H4055V476C4055 355 4016 304 3919 304ZM3725 426H3847C3885 426 3900 445 3900 523H3662C3665 441 3677 426 3725 426ZM3771 30C3716 30 3694 37 3678 64L3582 224C3575 236 3572 245 3572 252C3572 268 3588 273 3625 273C3664 273 3681 267 3695 246L3771 131L3847 246C3861 267 3878 273 3917 273C3953 273 3970 268 3970 252C3970 245 3967 236 3960 224L3864 64C3848 37 3825 30 3771 30Z"/>
+        </symbol>
       </defs>
     </svg>
 
@@ -53,9 +56,7 @@
 
     <!-- abertura do app: o nome com as letras saltando uma a uma -->
     <div id="boot" class="boot" aria-hidden="true">
-      <p class="boot-word">
-        <span style="--i: 0">P</span><span style="--i: 1">O</span><span style="--i: 2">U</span><span style="--i: 3">P</span><span style="--i: 4">A</span><span style="--i: 5">Ê</span>
-      </p>
+      <svg class="boot-svg" viewBox="0 0 4268 1001" xmlns="http://www.w3.org/2000/svg" fill="currentColor" role="img" aria-label="POUPAÊ"><g class="bl" style="--i:0"><path d="M173 971C255 971 271 964 271 923V758H501C676 758 704 712 704 509C704 303 675 263 501 263H79V923C79 965 97 971 173 971ZM271 429H443C501 429 510 444 510 521C510 594 502 611 443 611H271Z"/></g><g class="bl" style="--i:1"><path d="M1255 963C1396 963 1419 906 1419 611C1419 328 1398 263 1255 263H936C793 263 772 328 772 612C772 906 795 963 936 963ZM1162 429C1218 429 1226 463 1226 610C1226 768 1217 798 1162 798H1029C974 798 965 768 965 612C965 463 973 429 1029 429Z"/></g><g class="bl" style="--i:2"><path d="M1505 691C1505 906 1528 963 1669 963H1982C2123 963 2146 906 2146 692V303C2146 262 2130 255 2049 255C1972 255 1954 262 1954 303V676C1954 771 1945 798 1889 798H1762C1706 798 1697 771 1697 675V303C1697 262 1681 255 1599 255C1523 255 1505 262 1505 303Z"/></g><g class="bl" style="--i:3"><path d="M2334 971C2416 971 2432 964 2432 923V758H2662C2837 758 2865 712 2865 509C2865 303 2836 263 2662 263H2240V923C2240 965 2258 971 2334 971ZM2432 429H2604C2662 429 2671 444 2671 521C2671 594 2663 611 2604 611H2432Z"/></g><g class="bl" style="--i:4"><path d="M3247 253C3076 253 3016 266 3001 358L2914 899C2913 906 2912 917 2912 922C2912 956 2944 971 3017 971C3078 971 3100 961 3103 942L3122 809H3372L3391 942C3394 961 3415 971 3477 971C3550 971 3582 956 3582 922C3582 917 3581 906 3580 899L3492 358C3477 266 3417 253 3247 253ZM3172 454C3176 428 3198 419 3247 419C3295 419 3317 428 3321 454L3351 663H3142Z"/></g><g class="bl" style="--i:5"><path d="M3919 30C3865 30 3842 36 3826 60L3730 200C3723 211 3720 219 3720 225C3720 239 3737 243 3772 243C3812 243 3828 238 3843 219L3919 119L3996 219C4010 237 4027 243 4067 243C4102 243 4119 239 4119 225C4119 219 4116 211 4109 200L4013 60C3997 36 3974 30 3919 30ZM3651 263V963H4167C4201 963 4206 948 4206 886C4206 820 4200 806 4167 806H3833V679H4166C4196 679 4201 667 4201 612C4201 554 4194 543 4166 543H3833V419H4168C4200 419 4206 405 4206 340C4206 277 4201 263 4168 263Z"/></g></svg>
     </div>
 
     <!-- Tudo que rola vive aqui dentro. A rolagem sai do documento
@@ -71,7 +72,7 @@
             <img src="icons/logo-mark.png" alt="" width="256" height="256" />
           </span>
           <span class="brand-text">
-            <b>Poupaê</b>
+            <svg class="brand-svg" viewBox="0 0 4124 1082" role="img" aria-label="Poupaê"><use href="#marcaPoupae" /></svg>
           </span>
         </div>
 
@@ -139,7 +140,7 @@
           <p class="form-note">
             Conta local no seu navegador.
             <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
-            <span class="app-version">v37</span>
+            <span class="app-version">v38</span>
           </p>
         </form>
       </section>
@@ -153,7 +154,7 @@
           <span class="mark" aria-hidden="true">
             <img src="icons/logo-mark.png" alt="" width="256" height="256" />
           </span>
-          <span class="brand-text"><b>Poupaê</b></span>
+          <span class="brand-text"><svg class="brand-svg" viewBox="0 0 4124 1082" role="img" aria-label="Poupaê"><use href="#marcaPoupae" /></svg></span>
         </div>
 
         <nav class="rail-nav" aria-label="Navegação principal">
@@ -199,7 +200,7 @@
             <span class="mark" aria-hidden="true">
               <img src="icons/logo-mark.png" alt="" width="256" height="256" />
             </span>
-            <span class="brand-text"><b>Poupaê</b></span>
+            <span class="brand-text"><svg class="brand-svg" viewBox="0 0 4124 1082" role="img" aria-label="Poupaê"><use href="#marcaPoupae" /></svg></span>
           </div>
 
           <button id="cmdOpen" class="cmd-hint" type="button">
@@ -566,7 +567,7 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v37</span>
+              <span class="app-version">Poupaê v38</span>
             </div>
             <form id="accountForm" class="account glass">
               <label class="field">
