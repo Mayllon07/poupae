@@ -39,7 +39,13 @@ const els = {
   logoutBtn: $("#logoutBtn"),
   avatarBtn: $("#avatarBtn"),
   avatarInitials: $("#avatarInitials"),
+  avatarFoto: $("#avatarFoto"),
   avatarMenu: $("#avatarMenu"),
+  fotoPrevia: $("#fotoPrevia"),
+  fotoIniciais: $("#fotoIniciais"),
+  fotoInput: $("#fotoInput"),
+  fotoBtn: $("#fotoBtn"),
+  fotoRemover: $("#fotoRemover"),
   menuName: $("#menuName"),
   menuEmail: $("#menuEmail"),
 
@@ -459,6 +465,7 @@ function renderChrome() {
   els.avatarInitials.textContent = name.trim().charAt(0).toUpperCase() || "P";
   els.menuName.textContent = name;
   els.menuEmail.textContent = state.user?.email || "";
+  pintarFoto();
 
   const st = statsOf(state.goal);
   els.railPercent.textContent = `${st.percent.toFixed(0)}%`;
@@ -980,6 +987,108 @@ function renderAccount() {
   els.accountEmail.value = state.user.email;
   els.accountCurrentPassword.value = "";
   els.accountNewPassword.value = "";
+  pintarFoto();
+}
+
+/* ── foto de perfil ────────────────────────────────────────
+   A foto vive dentro da conta, no localStorage — junto com o resto
+   dos dados, sem servidor. Por isso ela é reduzida antes de guardar:
+   uma foto de celular tem vários MB e o localStorage inteiro só
+   comporta cerca de 5 MB. Depois de reduzida fica em dezenas de KB. */
+
+const FOTO_LADO = 256; // suficiente para um avatar em tela de alta densidade
+const FOTO_QUALIDADE = 0.82;
+
+function pintarFoto() {
+  const foto = state.user?.photo || "";
+  const inicial = (state.user?.name || "").trim().charAt(0).toUpperCase() || "P";
+
+  els.avatarFoto.classList.toggle("is-hidden", !foto);
+  if (foto) els.avatarFoto.src = foto;
+  else els.avatarFoto.removeAttribute("src");
+  els.avatarInitials.classList.toggle("is-hidden", Boolean(foto));
+
+  if (!els.fotoPrevia) return;
+  els.fotoIniciais.textContent = inicial;
+  els.fotoPrevia.classList.toggle("is-hidden", !foto);
+  if (foto) els.fotoPrevia.src = foto;
+  else els.fotoPrevia.removeAttribute("src");
+  els.fotoIniciais.classList.toggle("is-hidden", Boolean(foto));
+  els.fotoRemover.classList.toggle("is-hidden", !foto);
+  els.fotoBtn.textContent = foto ? "Trocar foto" : "Escolher foto";
+}
+
+/* Recorta no centro e reduz para um quadrado. O "from-image" respeita
+   a orientação gravada pela câmera — sem ele, retrato de celular
+   aparece deitado. */
+async function reduzirFoto(arquivo) {
+  let fonte;
+  let larg;
+  let alt;
+  try {
+    fonte = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
+    larg = fonte.width;
+    alt = fonte.height;
+  } catch {
+    // navegador sem createImageBitmap (ou sem a opção): cai para <img>
+    fonte = await new Promise((ok, erro) => {
+      const img = new Image();
+      img.onload = () => ok(img);
+      img.onerror = () => erro(new Error("imagem inválida"));
+      img.src = URL.createObjectURL(arquivo);
+    });
+    larg = fonte.naturalWidth;
+    alt = fonte.naturalHeight;
+  }
+
+  const lado = Math.min(larg, alt);
+  const cvs = document.createElement("canvas");
+  cvs.width = cvs.height = FOTO_LADO;
+  const ctx = cvs.getContext("2d");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(fonte, (larg - lado) / 2, (alt - lado) / 2, lado, lado, 0, 0, FOTO_LADO, FOTO_LADO);
+  if (fonte.close) fonte.close();
+  if (fonte.src?.startsWith("blob:")) URL.revokeObjectURL(fonte.src);
+
+  return cvs.toDataURL("image/jpeg", FOTO_QUALIDADE);
+}
+
+async function escolherFoto(arquivo) {
+  if (!arquivo || !state.user) return;
+  if (!arquivo.type.startsWith("image/")) return toast("Escolha um arquivo de imagem.");
+
+  let dataUri;
+  try {
+    dataUri = await reduzirFoto(arquivo);
+  } catch {
+    return toast("Não consegui ler essa imagem. Tente outra.");
+  }
+
+  const conta = state.accounts[state.user.email];
+  const anterior = conta.photo;
+  conta.photo = dataUri;
+  try {
+    saveAccounts();
+  } catch {
+    /* estourou a cota do navegador: desfaz para não deixar a conta
+       num estado que não se consegue mais gravar */
+    conta.photo = anterior;
+    if (anterior === undefined) delete conta.photo;
+    return toast("Sem espaço para guardar a foto neste navegador.");
+  }
+  state.user = conta;
+  pintarFoto();
+  toast("Foto atualizada.");
+}
+
+function removerFoto() {
+  if (!state.user) return;
+  const conta = state.accounts[state.user.email];
+  delete conta.photo;
+  saveAccounts();
+  state.user = conta;
+  pintarFoto();
+  toast("Foto removida.");
 }
 
 /* ── assistente ──────────────────────────────────────────── */
@@ -1928,6 +2037,12 @@ function importPayload(payload) {
       passwordSalt: String(payload.account.passwordSalt || ""),
       createdAt: payload.account.createdAt || new Date().toISOString(),
     };
+    /* só aceita foto embutida no próprio arquivo; um caminho externo
+       viraria requisição a um endereço que veio de fora */
+    const foto = payload.account.photo;
+    if (typeof foto === "string" && foto.startsWith("data:image/")) {
+      state.accounts[email].photo = foto;
+    }
     saveAccounts();
   }
 
@@ -2090,6 +2205,16 @@ els.importFile.addEventListener("change", () => {
 });
 
 els.avatarBtn.addEventListener("click", () => els.avatarMenu.classList.toggle("is-open"));
+
+els.fotoBtn.addEventListener("click", () => els.fotoInput.click());
+els.fotoRemover.addEventListener("click", removerFoto);
+els.fotoInput.addEventListener("change", (event) => {
+  const arquivo = event.target.files?.[0];
+  /* limpa o campo antes de processar: sem isso, escolher a mesma foto
+     duas vezes seguidas não dispara "change" na segunda */
+  event.target.value = "";
+  escolherFoto(arquivo);
+});
 
 // fecha ao clicar fora. Não usar stopPropagation aqui dentro: isso impediria
 // o clique de chegar ao delegador de [data-screen] e "Minha conta" não abriria.

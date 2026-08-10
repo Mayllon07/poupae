@@ -140,7 +140,7 @@
           <p class="form-note">
             Conta local no seu navegador.
             <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
-            <span class="app-version">v38</span>
+            <span class="app-version">v39</span>
           </p>
         </form>
       </section>
@@ -217,7 +217,10 @@
             <button id="newGoalBtn" class="btn btn-ghost is-hidden" type="button">Nova meta</button>
             <button id="editGoalBtn" class="btn btn-ghost is-hidden" type="button">Editar</button>
             <div class="avatar-wrap">
-              <button id="avatarBtn" class="avatar" type="button" aria-label="Conta"><span id="avatarInitials">P</span></button>
+              <button id="avatarBtn" class="avatar" type="button" aria-label="Conta">
+                <img id="avatarFoto" class="avatar-foto is-hidden" alt="" />
+                <span id="avatarInitials">P</span>
+              </button>
               <div id="avatarMenu" class="menu glass">
                 <p id="menuName">—</p>
                 <small id="menuEmail">—</small>
@@ -567,9 +570,22 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v38</span>
+              <span class="app-version">Poupaê v39</span>
             </div>
             <form id="accountForm" class="account glass">
+              <div class="foto-linha">
+                <span class="foto-previa">
+                  <img id="fotoPrevia" class="is-hidden" alt="" />
+                  <b id="fotoIniciais">P</b>
+                </span>
+                <div class="foto-acoes">
+                  <!-- accept="image/*" faz o Android oferecer câmera e galeria -->
+                  <input id="fotoInput" class="is-hidden" type="file" accept="image/*" />
+                  <button id="fotoBtn" class="btn btn-ghost" type="button">Escolher foto</button>
+                  <button id="fotoRemover" class="btn btn-ghost is-hidden" type="button">Remover</button>
+                  <p class="foto-nota muted">A foto fica só neste aparelho, junto com a sua conta.</p>
+                </div>
+              </div>
               <label class="field">
                 <input id="accountName" type="text" placeholder=" " required />
                 <span>Nome</span>
