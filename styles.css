@@ -834,13 +834,37 @@ p { margin: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { transform: scale(1.5); opacity: 0.7; } }
 
-.auth-card { padding: clamp(24px, 3vw, 36px); }
+/* mola: passa do ponto e volta — é o que dá a sensação elástica */
+:root { --mola: cubic-bezier(0.34, 1.5, 0.5, 1); }
+
+.auth-card {
+  padding: clamp(24px, 3vw, 34px);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--glass-brd);
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: var(--shadow-sm);
+}
+/* O cartão chega crescendo, passa um pouco do tamanho e assenta.
+   A animação mexe só na forma, nunca na opacidade: quem manda na
+   visibilidade é .reveal.in. Se a animação não rodar — aba oculta,
+   aparelho poupando bateria — o cartão aparece parado, em vez de
+   ficar preso invisível no primeiro quadro. */
+.auth-card.reveal.in { animation: cartaoEntra 700ms var(--ease); }
+@keyframes cartaoEntra {
+  0% { transform: scale(0.93) translateY(16px); }
+  55% { transform: scale(1.018) translateY(-4px); }
+  78% { transform: scale(0.996) translateY(1px); }
+  100% { transform: none; }
+}
+
 .tabs {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 5px;
-  margin-bottom: 22px;
+  padding: 4px;
+  margin-bottom: 20px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-1) 40%, transparent);
   border: 1px solid var(--glass-brd);
@@ -855,26 +879,141 @@ p { margin: 0; }
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--ink-2);
+  color: var(--ink-3);
   cursor: pointer;
-  transition: color 280ms var(--ease);
+  transition: color 280ms var(--ease), transform 420ms var(--mola);
 }
 .tab.is-active { color: #04170f; }
+.tab:active { transform: scale(0.94); }
+
+/* A camada de fora carrega o deslocamento; a de dentro, o esticão. No
+   mesmo elemento, a animação do esticão apagaria o deslocamento. */
 .tab-glider {
   position: absolute;
   z-index: 1;
-  top: 5px; left: 5px;
-  width: calc(50% - 5px);
-  height: calc(100% - 10px);
+  top: 4px; left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  transition: transform 520ms var(--mola);
+}
+.tab-glider::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   border-radius: 999px;
-  background: linear-gradient(120deg, var(--series-1), var(--series-1-soft));
-  transition: transform 460ms var(--ease-pop);
+  background-image: linear-gradient(var(--series-1), var(--series-1));
 }
 .tabs[data-active="register"] .tab-glider { transform: translateX(100%); }
+.tabs.is-trocando .tab-glider::before { animation: estica 520ms var(--ease); }
+@keyframes estica {
+  0% { transform: scaleX(1); }
+  32% { transform: scaleX(1.13); }
+  66% { transform: scaleX(0.965); }
+  100% { transform: scaleX(1); }
+}
 
-.form { display: grid; gap: 13px; }
-.form-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.form-note { font-size: 0.76rem; color: var(--ink-3); text-align: center; }
+.auth-title {
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin: 0 0 4px;
+}
+.auth-sub { text-align: center; color: var(--ink-3); font-size: 0.8rem; margin: 0 0 20px; }
+
+/* ── campos com rótulo em cima ──────────────────────────── */
+.form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 13px; }
+/* minmax(0,1fr) aqui e no campo: um <input> tem largura intrínseca de
+   ~20 caracteres e, numa coluna "auto", ela estoura o cartão */
+.campo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.campo > label { font-size: 0.76rem; font-weight: 600; color: var(--ink-2); transition: color 200ms var(--ease); }
+.campo:focus-within > label { color: var(--series-1); }
+.campo-dica { font-size: 0.7rem; color: var(--ink-3); }
+
+.caixa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-brd);
+  background: color-mix(in srgb, var(--surface-1) 42%, transparent);
+  transition: border-color 220ms var(--ease), box-shadow 220ms var(--ease);
+}
+.caixa:focus-within {
+  border-color: var(--series-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1) 16%, transparent);
+}
+.caixa input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+.caixa input::placeholder { color: var(--ink-3); }
+.caixa-btn {
+  border: 0;
+  background: none;
+  color: var(--series-1);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.btn-entrar {
+  width: 100%;
+  min-width: 0;
+  padding: 14px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: var(--r-md);
+  background-image: linear-gradient(var(--series-1-deep), var(--series-1-deep));
+  color: #fff;
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 420ms var(--mola), filter 200ms var(--ease);
+}
+.btn-entrar:hover { filter: brightness(1.1); }
+.btn-entrar:active { transform: scale(0.955); transition-duration: 110ms; }
+
+.ou { display: flex; align-items: center; gap: 11px; color: var(--ink-3); font-size: 0.72rem; margin: 16px 0 12px; }
+.ou::before, .ou::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.btn-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 200ms var(--ease), transform 420ms var(--mola);
+}
+.btn-alt:hover { border-color: color-mix(in srgb, var(--series-1) 45%, transparent); }
+.btn-alt:active { transform: scale(0.965); transition-duration: 110ms; }
+.btn-alt svg { width: 17px; height: 17px; color: var(--series-1); }
+
+.form-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.form-note { font-size: 0.76rem; color: var(--ink-3); text-align: center; margin-top: 16px; }
 
 /* ── ESTRUTURA DO APP ──────────────────────────────────── */
 .shell {

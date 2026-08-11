@@ -102,27 +102,44 @@
         </div>
       </section>
 
-      <section class="auth-card glass reveal" style="--d: 120ms">
+      <section class="auth-card reveal" style="--d: 120ms">
         <div class="tabs" role="tablist" aria-label="Acesso">
+          <!-- duas camadas: a de fora desliza, a de dentro estica.
+               No mesmo elemento, a animação apagaria o deslocamento. -->
+          <span class="tab-glider" aria-hidden="true"></span>
           <button id="tabLogin" class="tab is-active" type="button" role="tab">Entrar</button>
           <button id="tabRegister" class="tab" type="button" role="tab">Criar conta</button>
-          <span class="tab-glider" aria-hidden="true"></span>
         </div>
 
+        <h2 id="authTitle" class="auth-title">Bem-vindo de volta</h2>
+        <p id="authSub" class="auth-sub">Suas metas continuam de onde pararam.</p>
+
         <form id="authForm" class="form" novalidate>
-          <label id="fieldName" class="field is-hidden">
-            <input id="authName" type="text" placeholder=" " autocomplete="name" />
-            <span>Nome</span>
-          </label>
-          <label class="field">
-            <input id="authEmail" type="email" placeholder=" " autocomplete="email" required />
-            <span>E-mail</span>
-          </label>
-          <label class="field">
-            <input id="authPassword" type="password" placeholder=" " autocomplete="current-password" required />
-            <span>Senha</span>
-            <button id="togglePass" class="field-btn" type="button" aria-label="Mostrar senha">Mostrar</button>
-          </label>
+          <div id="fieldName" class="campo is-hidden" style="--i: 0">
+            <label for="authName">Nome</label>
+            <div class="caixa"><input id="authName" type="text" placeholder="Como quer ser chamado" autocomplete="name" /></div>
+          </div>
+
+          <div class="campo" style="--i: 1">
+            <label for="authEmail">E-mail</label>
+            <div class="caixa"><input id="authEmail" type="email" placeholder="seu@email.com" autocomplete="email" required /></div>
+          </div>
+
+          <div class="campo" style="--i: 2">
+            <label for="authPassword">Senha</label>
+            <div class="caixa">
+              <input id="authPassword" type="password" placeholder="Sua senha" autocomplete="current-password" required />
+              <button id="togglePass" class="caixa-btn" type="button" aria-label="Mostrar senha">Mostrar</button>
+            </div>
+            <span id="passHint" class="campo-dica is-hidden">Ao menos 6 caracteres</span>
+          </div>
+
+          <!-- só na criação: a senha não tem como ser recuperada, então
+               um erro de digitação aqui tranca a conta para sempre -->
+          <div id="fieldConfirm" class="campo is-hidden" style="--i: 3">
+            <label for="authConfirm">Confirmar senha</label>
+            <div class="caixa"><input id="authConfirm" type="password" placeholder="Repita a senha" autocomplete="new-password" /></div>
+          </div>
 
           <div class="form-row">
             <label class="switch">
@@ -130,19 +147,24 @@
               <i aria-hidden="true"></i>
               Manter conectado
             </label>
-            <button id="helpBtn" class="link" type="button">Ajuda</button>
+            <button id="helpBtn" class="link" type="button">Esqueci minha senha</button>
           </div>
 
-          <button id="authSubmit" class="btn btn-primary btn-block" type="submit">
-            <span>Entrar</span>
-          </button>
-
-          <p class="form-note">
-            Conta local no seu navegador.
-            <button id="importAuthBtn" class="link" type="button">Restaurar backup</button>
-            <span class="app-version">v39</span>
-          </p>
+          <button id="authSubmit" class="btn-entrar" type="submit">Entrar</button>
         </form>
+
+        <div class="ou"><span>ou</span></div>
+
+        <button id="importAuthBtn" class="btn-alt" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 12-4-4m4 4 4-4" /><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" /></svg>
+          Restaurar backup
+        </button>
+
+        <p class="form-note">
+          <span id="authSwapText">Não tem conta?</span>
+          <button id="authSwapBtn" class="link" type="button">Criar agora</button>
+          <span class="app-version">v40</span>
+        </p>
       </section>
     </main>
 
@@ -570,7 +592,7 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v39</span>
+              <span class="app-version">Poupaê v40</span>
             </div>
             <form id="accountForm" class="account glass">
               <div class="foto-linha">

@@ -30,6 +30,13 @@ const els = {
   remember: $("#remember"),
   helpBtn: $("#helpBtn"),
   authSubmit: $("#authSubmit"),
+  authTitle: $("#authTitle"),
+  authSub: $("#authSub"),
+  fieldConfirm: $("#fieldConfirm"),
+  authConfirm: $("#authConfirm"),
+  passHint: $("#passHint"),
+  authSwapText: $("#authSwapText"),
+  authSwapBtn: $("#authSwapBtn"),
 
   shell: $("#appShell"),
   topbar: $("#topbar"),
@@ -311,7 +318,19 @@ const revealer = new IntersectionObserver(
   (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add("in")),
   { threshold: 0.12 }
 );
-const observeReveals = () => $$(".reveal").forEach((el) => revealer.observe(el));
+const observeReveals = () =>
+  $$(".reveal").forEach((el) => {
+    if (el.classList.contains("in")) return;
+    /* O observador não dispara de novo para um elemento que já
+       acompanha. Ao sair da conta, a tela de entrada reaparece já à
+       vista e nunca receberia "in" — ficaria invisível, porque
+       .reveal começa com opacity 0. Então quem já está na tela recebe
+       a classe na hora; só o que está fora fica sob observação. */
+    const r = el.getBoundingClientRect();
+    const aVista = r.width > 0 && r.top < innerHeight && r.bottom > 0;
+    if (aVista) el.classList.add("in");
+    else revealer.observe(el);
+  });
 
 /* confete */
 function burstConfetti() {
@@ -434,15 +453,31 @@ function render() {
 
 function renderAuth() {
   const logged = Boolean(state.authed && state.user);
+  const criando = state.authMode === "register";
   els.authView.classList.toggle("is-hidden", logged);
   els.shell.classList.toggle("is-hidden", !logged);
   els.tabs.dataset.active = state.authMode;
-  els.tabLogin.classList.toggle("is-active", state.authMode === "login");
-  els.tabRegister.classList.toggle("is-active", state.authMode === "register");
-  els.fieldName.classList.toggle("is-hidden", state.authMode !== "register");
-  els.authName.required = state.authMode === "register";
-  els.authSubmit.querySelector("span").textContent = state.authMode === "register" ? "Criar conta" : "Entrar";
-  els.authPassword.autocomplete = state.authMode === "register" ? "new-password" : "current-password";
+  els.tabLogin.classList.toggle("is-active", !criando);
+  els.tabRegister.classList.toggle("is-active", criando);
+
+  els.authTitle.textContent = criando ? "Criar conta" : "Bem-vindo de volta";
+  els.authSub.textContent = criando
+    ? "Fica tudo neste aparelho — nada vai para a internet."
+    : "Suas metas continuam de onde pararam.";
+
+  els.fieldName.classList.toggle("is-hidden", !criando);
+  els.authName.required = criando;
+  els.fieldConfirm.classList.toggle("is-hidden", !criando);
+  els.authConfirm.required = criando;
+  els.passHint.classList.toggle("is-hidden", !criando);
+  els.authPassword.placeholder = criando ? "Crie uma senha" : "Sua senha";
+
+  els.authSubmit.textContent = criando ? "Criar conta" : "Entrar";
+  els.authPassword.autocomplete = criando ? "new-password" : "current-password";
+  els.helpBtn.classList.toggle("is-hidden", criando);
+  els.authSwapText.textContent = criando ? "Já tem conta?" : "Não tem conta?";
+  els.authSwapBtn.textContent = criando ? "Entrar" : "Criar agora";
+
   if (!logged) observeReveals();
 }
 
@@ -1702,10 +1737,20 @@ async function upgradeHashIfLegacy(account, password) {
 }
 
 function setAuthMode(mode) {
+  if (state.authMode !== mode) {
+    /* reinicia a animação do esticão mesmo em cliques seguidos: sem
+       tirar e repor a classe, o navegador não a executa de novo */
+    els.tabs.classList.remove("is-trocando");
+    void els.tabs.offsetWidth;
+    els.tabs.classList.add("is-trocando");
+    clearTimeout(setAuthMode.volta);
+    setAuthMode.volta = setTimeout(() => els.tabs.classList.remove("is-trocando"), 540);
+  }
   state.authMode = mode;
   els.authForm.reset();
   els.remember.checked = true;
   els.authPassword.type = "password";
+  els.authConfirm.type = "password";
   els.togglePass.textContent = "Mostrar";
   renderAuth();
 }
@@ -1720,6 +1765,12 @@ async function handleAuth(event) {
     if (!name) return toast("Informe seu nome para criar a conta.");
     if (state.accounts[email]) { setAuthMode("login"); els.authEmail.value = email; return toast("Já existe uma conta com este e-mail."); }
     if (password.length < 6) return toast("Use uma senha com pelo menos 6 caracteres.");
+    /* A senha não tem como ser recuperada: um erro de digitação aqui
+       trancaria a conta para sempre. Daí a confirmação. */
+    if (password !== els.authConfirm.value) {
+      els.authConfirm.focus();
+      return toast("As senhas não conferem. Repita a mesma senha.");
+    }
 
     const account = { name, email, ...(await hashPassword(password)), createdAt: new Date().toISOString() };
     state.accounts[email] = account;
@@ -2131,7 +2182,14 @@ els.togglePass.addEventListener("click", () => {
   els.authPassword.type = showing ? "password" : "text";
   els.togglePass.textContent = showing ? "Mostrar" : "Ocultar";
 });
-els.helpBtn.addEventListener("click", () => toast("O acesso é local. Sem senha salva, crie outra conta neste navegador."));
+/* Não existe "recuperar senha" sem servidor. O aviso diz a verdade e
+   aponta o único caminho real: restaurar um backup. */
+els.helpBtn.addEventListener("click", () =>
+  toast("A senha protege só este aparelho e não pode ser recuperada. Restaure um backup ou crie outra conta.")
+);
+els.authSwapBtn.addEventListener("click", () =>
+  setAuthMode(state.authMode === "register" ? "login" : "register")
+);
 
 els.goalForm.addEventListener("submit", (event) => {
   event.preventDefault();
