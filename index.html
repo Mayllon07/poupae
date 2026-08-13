@@ -163,7 +163,7 @@
         <p class="form-note">
           <span id="authSwapText">Não tem conta?</span>
           <button id="authSwapBtn" class="link" type="button">Criar agora</button>
-          <span class="app-version">v40</span>
+          <span class="app-version">v41</span>
         </p>
       </section>
     </main>
@@ -409,7 +409,13 @@
 
             <section class="kpis" id="kpis">
               <article class="kpi glass-soft reveal" style="--d: 40ms">
-                <span>Guardado</span>
+                <span>
+                  Guardado
+                  <button id="saldoBtn" class="kpi-editar" type="button" aria-label="Ajustar saldo guardado">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16z" /></svg>
+                    Ajustar
+                  </button>
+                </span>
                 <strong data-count id="kpiSaved">R$ 0,00</strong>
                 <div class="meter"><i id="kpiSavedBar"></i></div>
               </article>
@@ -592,7 +598,7 @@
                 <p class="eyebrow">Conta</p>
                 <h2 class="display-sm">Dados de acesso</h2>
               </div>
-              <span class="app-version">Poupaê v40</span>
+              <span class="app-version">Poupaê v41</span>
             </div>
             <form id="accountForm" class="account glass">
               <div class="foto-linha">
@@ -714,6 +720,23 @@
         <div class="dialog-actions">
           <button id="depEditCancel" class="btn btn-ghost" type="button">Cancelar</button>
           <button id="depEditSave" class="btn btn-primary" type="button"><span>Salvar</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="saldoDlg" class="cmd is-hidden" role="dialog" aria-modal="true" aria-labelledby="saldoTitulo">
+      <div class="cmd-box glass install-help">
+        <h2 id="saldoTitulo">Ajustar saldo guardado</h2>
+        <p id="saldoSub" class="muted"></p>
+        <label class="field">
+          <input id="saldoInput" type="text" inputmode="decimal" autocomplete="off" data-money placeholder=" " />
+          <span>Quanto você tem guardado (R$)</span>
+        </label>
+        <p id="saldoPreview" class="saldo-previa"></p>
+        <p class="install-note">Os depósitos que ainda faltam são recalculados para cobrir o novo restante. Os já concluídos não são tocados.</p>
+        <div class="dialog-actions">
+          <button id="saldoCancel" class="btn btn-ghost" type="button">Cancelar</button>
+          <button id="saldoSave" class="btn btn-primary" type="button"><span>Salvar e recalcular</span></button>
         </div>
       </div>
     </div>

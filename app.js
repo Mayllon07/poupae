@@ -171,6 +171,14 @@ const els = {
   depEditSave: $("#depEditSave"),
   depEditCancel: $("#depEditCancel"),
 
+  saldoBtn: $("#saldoBtn"),
+  saldoDlg: $("#saldoDlg"),
+  saldoSub: $("#saldoSub"),
+  saldoInput: $("#saldoInput"),
+  saldoPreview: $("#saldoPreview"),
+  saldoCancel: $("#saldoCancel"),
+  saldoSave: $("#saldoSave"),
+
   scroller: $("#scroller"),
   toast: $("#toast"),
   toastText: $("#toastText"),
@@ -1573,6 +1581,96 @@ function toggleDeposit(id, custom = null) {
 /* edição de um depósito, sem mexer no resto do plano */
 let editingDepositId = null;
 
+/* ── ajuste do saldo guardado ──────────────────────────────
+   O guardado é valor inicial + depósitos concluídos. Os concluídos são
+   história e não se mexem; então corrigir o saldo significa mexer no
+   valor inicial, e redistribuir o que falta pelos depósitos pendentes.
+
+   Isso existe porque editar a meta refaz o plano do zero e perde as
+   marcações de concluído — caro demais para só corrigir um valor. */
+
+function saldoPago(goal) {
+  return goal.deposits.filter((d) => d.paid).reduce((s, d) => s + (d.paidAmount || d.amount), 0);
+}
+
+function previaSaldo() {
+  const goal = state.goal;
+  if (!goal) return;
+  const novo = parseMoney(els.saldoInput.value);
+  const pendentes = goal.deposits.filter((d) => !d.paid);
+  const el = els.saldoPreview;
+  el.classList.remove("is-erro");
+
+  if (novo > goal.targetAmount) {
+    el.classList.add("is-erro");
+    el.innerHTML = `Passa da meta de <b>${currency.format(goal.targetAmount)}</b>. Use <b>Editar</b> se quiser aumentar a meta.`;
+    return;
+  }
+  const restante = Math.max(0, money(goal.targetAmount - novo));
+  if (!pendentes.length) {
+    el.innerHTML = `Sem depósitos pendentes para recalcular. Faltariam <b>${currency.format(restante)}</b>.`;
+    return;
+  }
+  const valores = buildAmounts(restante, pendentes.length, goal.strategy);
+  const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+  el.innerHTML = `Faltam <b>${currency.format(restante)}</b> em <b>${pendentes.length}</b> depósito${pendentes.length === 1 ? "" : "s"} — cerca de <b>${currency.format(media)}</b> cada.`;
+}
+
+function abrirSaldo() {
+  if (!state.goal) return toast("Crie uma meta antes de ajustar o saldo.");
+  const st = statsOf(state.goal);
+  els.saldoSub.textContent = `Hoje a meta "${state.goal.name}" considera ${currency.format(st.saved)} guardados.`;
+  els.saldoInput.value = fmtMoneyBR(st.saved);
+  els.saldoDlg.classList.remove("is-hidden");
+  previaSaldo();
+  els.saldoInput.focus();
+  els.saldoInput.select();
+}
+
+const fecharSaldo = () => els.saldoDlg.classList.add("is-hidden");
+
+function salvarSaldo() {
+  const goal = state.goal;
+  if (!goal) return;
+  const novo = parseMoney(els.saldoInput.value);
+  if (!(novo >= 0)) return toast("Informe um valor válido.");
+  if (novo > goal.targetAmount) {
+    return toast(`Isso passa da meta de ${currency.format(goal.targetAmount)}. Edite a meta para aumentá-la.`);
+  }
+
+  const st = statsOf(goal);
+  if (money(novo) === money(st.saved)) { fecharSaldo(); return toast("O saldo continua o mesmo."); }
+
+  /* pode ficar negativo, e está certo: significa que a pessoa tinha
+     menos do que o plano supunha antes dos depósitos concluídos */
+  goal.currentAmount = money(novo - saldoPago(goal));
+
+  const restante = Math.max(0, money(goal.targetAmount - novo));
+  const pendentes = goal.deposits.filter((d) => !d.paid);
+  if (pendentes.length) {
+    const valores = buildAmounts(restante, pendentes.length, goal.strategy);
+    pendentes.forEach((d, i) => { d.amount = valores[i]; });
+  }
+
+  logHistory(
+    goal,
+    "recalculated",
+    `Saldo ajustado para ${currency.format(novo)}. ` +
+      (pendentes.length
+        ? `${currency.format(restante)} redistribuídos em ${pendentes.length} depósito${pendentes.length === 1 ? "" : "s"} pendente${pendentes.length === 1 ? "" : "s"}.`
+        : "Não havia depósitos pendentes para recalcular.")
+  );
+  saveCurrentGoal();
+  fecharSaldo();
+  render();
+  if (restante === 0) {
+    burstConfetti();
+    toast("Saldo ajustado — você chegou na meta! Os depósitos restantes zeraram.");
+  } else {
+    toast(pendentes.length ? "Saldo ajustado e depósitos recalculados." : "Saldo ajustado.");
+  }
+}
+
 function openDepositEditor(id) {
   const d = state.goal?.deposits.find((x) => x.id === id);
   if (!d) return;
@@ -2327,6 +2425,15 @@ els.depEditSave.addEventListener("click", saveDepositEdit);
 els.depEditCancel.addEventListener("click", closeDepositEditor);
 els.depEdit.addEventListener("click", (e) => { if (e.target === els.depEdit) closeDepositEditor(); });
 
+els.saldoBtn.addEventListener("click", abrirSaldo);
+els.saldoCancel.addEventListener("click", fecharSaldo);
+els.saldoSave.addEventListener("click", salvarSaldo);
+els.saldoDlg.addEventListener("click", (e) => { if (e.target === els.saldoDlg) fecharSaldo(); });
+/* a máscara de dinheiro roda no mesmo evento; a prévia entra depois
+   dela para ler o valor já formatado */
+els.saldoInput.addEventListener("input", previaSaldo);
+els.saldoInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); salvarSaldo(); } });
+
 els.cmdOpen.addEventListener("click", openCmd);
 els.cmdInput.addEventListener("input", () => { cmdIndex = 0; renderCmd(); });
 els.cmdList.addEventListener("click", (e) => {
@@ -2349,6 +2456,10 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Escape" && !els.depEdit.classList.contains("is-hidden")) {
     closeDepositEditor();
+    return;
+  }
+  if (event.key === "Escape" && !els.saldoDlg.classList.contains("is-hidden")) {
+    fecharSaldo();
     return;
   }
   if (els.cmdPalette.classList.contains("is-hidden")) return;
